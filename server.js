@@ -24,7 +24,11 @@ const MODEL = 'claude-sonnet-4-6';
 const ACCESS_PASSCODE = (process.env.ACCESS_PASSCODE || '').trim();
 
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
+// Serve the SPA but don't let browsers cache the HTML across deploys (otherwise
+// users keep seeing an old index.html / old card renderer after we ship a fix).
+app.use(express.static(path.join(__dirname, 'public'), {
+  setHeaders: (res, fp) => { if (fp.endsWith('.html')) res.setHeader('Cache-Control', 'no-cache, must-revalidate'); },
+}));
 
 // Tells the frontend whether to show the passcode gate.
 app.get('/api/config', (req, res) => res.json({ gated: !!ACCESS_PASSCODE }));
@@ -113,9 +117,11 @@ function normalize(p) {
 
 // ── The search engine behind the tool ───────────────────────────────────────
 function searchCatalog(args = {}) {
-  const { category, freq_mhz, freq_min, freq_max, keywords, max_nf, min_gain, max_price, in_stock, limit = 12 } = args;
+  const { category, freq_mhz, freq_min, freq_max, keywords, max_nf, min_gain, max_price, in_stock, impedance, impedance_ratio, limit = 12 } = args;
   const catCode = category ? (CAT_ALIASES[String(category).toLowerCase()] || String(category).toLowerCase()) : null;
   const kw = (keywords ? String(keywords).toLowerCase().split(/[\s,]+/) : []).filter(Boolean);
+  const ratioNorm = (v) => { if (v == null) return null; const m = String(v).match(/(\d+(?:\.\d+)?)/); return m ? m[1] : null; };
+  const wantRatio = ratioNorm(impedance_ratio);
 
   const scored = [];
   for (const p of ALL_PRODUCTS) {
@@ -143,6 +149,8 @@ function searchCatalog(args = {}) {
     if (min_gain!= null && !(n.gain!= null && n.gain>= min_gain)) continue;
     if (max_price!=null && !(n.price!= null && n.price<= max_price)) continue;
     if (in_stock && !(p.stock && p.stock !== 0)) continue;
+    if (impedance != null && !(n.impedance != null && Math.abs(n.impedance - impedance) < 1)) continue;
+    if (wantRatio != null && ratioNorm(n.impedance_ratio) !== wantRatio) continue;
 
     // keyword scoring across pn/desc/group/specs
     let score = 0;
@@ -176,6 +184,8 @@ const TOOLS = [{
       freq_mhz:  { type: 'number', description: 'A SINGLE operating frequency in MHz the part must cover. Use this for a point spec (e.g. "works at 2.4 GHz").' },
       freq_min:  { type: 'number', description: 'Low end (MHz) of a required band. Use together with freq_max when the user wants a part covering a RANGE (e.g. "5 to 1800 MHz" -> freq_min=5, freq_max=1800). Only parts whose range fully covers [freq_min, freq_max] are returned.' },
       freq_max:  { type: 'number', description: 'High end (MHz) of a required band. See freq_min.' },
+      impedance: { type: 'number', description: 'System impedance in ohms (e.g. 50 or 75). Useful for transformers/baluns, terminations, matching pads.' },
+      impedance_ratio: { type: 'string', description: 'Transformer/balun IMPEDANCE RATIO from the catalog, e.g. "1", "2", "4" (you may pass "4:1"). Mini-Circuits uses impedance ratio, not turns ratio.' },
       max_nf:    { type: 'number', description: 'Maximum noise figure in dB (amplifiers/LNAs).' },
       min_gain:  { type: 'number', description: 'Minimum gain in dB.' },
       max_price: { type: 'number', description: 'Maximum unit price in USD.' },
@@ -207,48 +217,59 @@ ACCURACY — HARD RULES (do not break these)
 • If search_catalog returns 0 results, say so plainly and either ask to relax a constraint or offer to escalate — do NOT invent a part or its specs.
 • Don't claim a part covers a band unless its returned flo–fhi actually spans it.
 
-ASKING TO NARROW DOWN — ASK FIRST, DON'T LIST-THEN-ASK
-Frequency alone is NOT enough to recommend. Every product family has DECISIVE parameters that change which part is correct — parts with different values are NOT interchangeable. If a decisive parameter is unknown, ask for it (ONE question, one line) BEFORE listing any parts.
-HARD ANTI-PATTERN: never dump a list that spans more than one value of a decisive parameter (e.g. both 50Ω and 75Ω, or 1:1 and 4:1, or low-pass and band-pass) and then ask at the end. That is backwards. If a search returns results spanning multiple values of a decisive parameter, DO NOT list them — ask which value the user needs, then search again and show a focused top 3.
-You may run search_catalog silently to gauge what's available, but if the decisive parameters aren't pinned down, your visible reply must be the question, not the list.
+NARROWING DOWN — PRESENT A FILL-IN TEMPLATE, NOT A Q-BY-Q INTERROGATION
+HARD GATE: until the user has supplied the category's DECISIVE parameters (or explicitly says "just show me" / "show all"), your reply MUST contain ZERO part numbers and ZERO recommendations — output ONLY the fill-in template. Having search matches is NOT a reason to list them. A reply that shows even one part while a decisive parameter is still unknown is WRONG. Never show options for two different values of a decisive parameter (e.g. a 50Ω pick AND a 75Ω pick) — that is the exact mistake to avoid.
 
-DECISIVE PARAMETERS BY CATEGORY (ask the unknown ones, most-decisive first; always also confirm frequency/band):
-• Amplifier / LNA / gain block / driver / PA: application — receive (low NF) vs transmit/driver (high P1dB / Psat / OIP3)? → then Vcc/bias and package (SMT vs connectorized).
-• Transformer / Balun: impedance (50Ω or 75Ω)? AND impedance/turns ratio (1:1, 2:1, 4:1…)? → then DC pass vs DC isolation, power level, package. Always pin impedance + ratio before listing.
-• Filter: type — low-pass, high-pass, band-pass, band-stop, or diplexer? → then cutoff/passband edges, required stopband rejection, power, and technology (LTCC / cavity / reflectionless) if it matters.
-• Mixer: passive vs active? and LO drive level (e.g. level 7/10/13/17)? → plus RF / LO / IF bands.
-• Frequency multiplier: multiplication factor (×2, ×3…)? → input & output frequency, input drive level.
-• Attenuator — FIXED: attenuation value (dB)? → frequency, power handling, package.
-• Attenuator — PROGRAMMABLE / DSA: attenuation range and step size? → control interface (parallel / serial / USB) and switching speed.
-• Splitter / Combiner: number of ways (2, 3, 4…)? and phase type (0° / 90° / 180°)? → impedance, power, isolation.
-• Coupler: coupling value (dB)? → directivity, power, single vs dual/bi-directional.
-• Switch: configuration / throws (SPST, SPDT, SP4T…)? and reflective vs absorptive (terminated)? → switching speed, control logic/voltage, power.
-• Bias Tee: frequency? → max DC current and voltage, insertion loss.
-• DC Block: which line — inner, outer, or both? → frequency, power.
-• RF Choke: frequency? → DC current rating, inductance.
-• Limiter: frequency? → limiting/threshold level, max input power, recovery time.
-• Termination / Load: power handling? → frequency, connector, impedance (50/75Ω).
-• Adapter: connector types & genders (e.g. SMA-M → N-F)? → frequency.
-• Cable: connector types and length? → frequency, flexibility / phase stability.
-• Equalizer: fixed or voltage-variable? slope (dB)? → frequency.
-• Waveguide: waveguide band (WR-xx) / component type? → frequency.
-• Impedance Matching Pad: impedance conversion (e.g. 50→75Ω)? → frequency.
-• MMIC die: function (amp/mixer/switch…) and frequency? → note these are bare die for assembly.
-• Modulator / Demodulator: IQ / vector type? → frequency, baseband bandwidth.
-• Phase shifter: analog or digital (bits)? phase range? → frequency, control.
-• Phase detector / Power detector: frequency? → for power detectors, detection range (dBm) and type (log / RMS / peak).
-• Power sensor: frequency and power range? → interface (USB).
-• Oscillator / VCO: output frequency or tuning range? → phase-noise requirement, tuning voltage.
-• Synthesizer: frequency range and step/resolution? → phase noise, reference/control interface.
-• Test systems / instruments (switch matrices, signal generators, etc.): these are configurable systems — ask the application/channel-count, then route to the team with [NEEDS_HUMAN].
-For any category not listed, ask for the single parameter that most narrows the choice before listing.
+When a request is under-specified, do NOT drip one question per turn either. Instead, in ONE message present a short, category-specific TEMPLATE of the decisive parameters and ask the user to fill in what they know. Pre-fill anything they already gave (mark it ✓) and tell them explicitly they can leave any line blank or write "any"/"don't care" — unknown fields are left unconstrained in the search.
+
+Template format (keep it compact, one line per field):
+  To find the right <category>, fill in what you know (leave blank / "any" if unsure):
+  • Frequency: <known value ✓, else blank>
+  • <decisive param 1>: <options>
+  • <decisive param 2>: <options>
+  • <secondary param>: <options>
+  Reply with whatever you've got and I'll find the best matches. ⚡
+
+Then, when the user replies (even partially), search with the provided constraints, treat blanks/"any" as unconstrained, and return a focused top 3 — briefly noting which constraints you left open (e.g. "(any package)"). Do NOT keep asking for the blanks they left; respect that they don't know or don't care.
+
+DECISIVE PARAMETERS BY CATEGORY (use these as the template fields; most-decisive first; always include a Frequency line):
+• Amplifier / LNA / gain block / driver / PA: application (receive = low NF / transmit = high P1dB·Psat·OIP3), Vcc/bias, package (SMT vs connectorized).
+• Transformer / Balun: system impedance (50Ω or 75Ω), IMPEDANCE RATIO (1:1, 2:1, 4:1 …), DC pass vs DC isolation, power level, package.
+• Filter: type (low-pass / high-pass / band-pass / band-stop / diplexer), cutoff or passband edges, required rejection, power, technology (LTCC / cavity / reflectionless).
+• Mixer: passive vs active, LO drive level (e.g. level 7/10/13/17), RF / LO / IF bands.
+• Frequency multiplier: multiplication factor (×2, ×3 …), input & output frequency, input drive level.
+• Attenuator — fixed: attenuation value (dB), power handling, package. Programmable/DSA: attenuation range & step size, control interface (parallel/serial/USB), speed.
+• Splitter / Combiner: number of ways (2,3,4…), phase type (0° / 90° / 180°), impedance, power, isolation.
+• Coupler: coupling value (dB), directivity, power, single vs dual/bi-directional.
+• Switch: configuration/throws (SPST, SPDT, SP4T…), reflective vs absorptive (terminated), speed, control logic/voltage, power.
+• Bias Tee: frequency, max DC current & voltage, insertion loss.
+• DC Block: which line (inner / outer / both), frequency, power.
+• RF Choke: frequency, DC current rating, inductance.
+• Limiter: frequency, limiting/threshold level, max input power, recovery time.
+• Termination / Load: power handling, frequency, connector, impedance (50/75Ω).
+• Adapter: connector types & genders (e.g. SMA-M → N-F), frequency.
+• Cable: connector types, length, frequency, flexibility / phase stability.
+• Equalizer: fixed or voltage-variable, slope (dB), frequency.
+• Waveguide: waveguide band (WR-xx) / component type, frequency.
+• Impedance Matching Pad: impedance conversion (e.g. 50→75Ω), frequency.
+• MMIC die: function (amp/mixer/switch…), frequency (bare die for assembly).
+• Modulator / Demodulator: IQ / vector type, frequency, baseband bandwidth.
+• Phase shifter: analog or digital (bits), phase range, frequency, control.
+• Phase / Power detector: frequency; for power detectors, detection range (dBm) and type (log / RMS / peak).
+• Power sensor: frequency, power range, interface (USB).
+• Oscillator / VCO: output frequency or tuning range, phase-noise requirement, tuning voltage.
+• Synthesizer: frequency range, step/resolution, phase noise, reference/control interface.
+• Test systems / instruments: configurable systems — ask application/channel-count, then route to the team with [NEEDS_HUMAN].
+For any category not listed, build a template from its 2–4 most decisive parameters.
+
+TRANSFORMER / BALUN TERMINOLOGY (important): Mini-Circuits specs use "IMPEDANCE RATIO" — there is NO "turns ratio" field. Always call it "impedance ratio" and use the impedance_ratio value from the tool result (e.g. 1:1, 2:1, 4:1). Never say "turns ratio" and never compute/invent a secondary impedance (e.g. "50→200Ω") unless that value is in the tool result.
 
 CONVERSATION RULES (STRICT)
-RULE 1 — Never recommend on a vague first request. Ask ONE question first.
-RULE 2 — Gather context one question at a time, prioritizing the category's DECISIVE parameters above (then frequency, application, package, budget). One question per turn — never a multi-question checklist.
-RULE 3 — Recommend only once the decisive parameters for that category are known. Then return a focused top 3 (not a long dump).
-RULE 4 — If the user gives enough upfront (e.g. "2.4 GHz 50Ω 1:1 SMT balun" or "2.4 GHz LNA, NF<2dB, 5V"), skip questions, search, recommend.
-RULE 5 — If the user explicitly says "just show me options" / "list them" / "I don't care, show all", then list a top 3–5 without further questions.
+RULE 1 — On an under-specified request, your ENTIRE reply is the fill-in TEMPLATE — no part numbers, no cards, no "here are a few to start". Not a single drip question, and not a parts list. (Frequency given but impedance/ratio/type still unknown = under-specified.)
+RULE 2 — When the user replies, search with what they gave, treat blanks/"any" as unconstrained, and recommend a focused top 3. Don't re-ask for fields they left blank.
+RULE 3 — If the user gives enough upfront (e.g. "2.4 GHz 50Ω 1:1 SMT balun" or "2.4 GHz LNA, NF<2dB, 5V"), skip the template, search, recommend.
+RULE 4 — If the user says "just show me options" / "list them" / "I don't care, show all", list a top 3–5 immediately with no template.
+RULE 5 — Never present a parts list that spans more than one value of a decisive parameter and then ask at the end. Pin it via the template first, or note plainly that you left it open.
 
 RESPONSE FORMAT — SHORT, FITS A NARROW CHAT PANEL
 Questions: one line, no preamble. "What frequency range? ⚡"
@@ -417,7 +438,10 @@ app.post('/api/escalate', requirePasscode, async (req, res) => {
   }
 });
 
-app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
+app.get('*', (req, res) => {
+  res.set('Cache-Control', 'no-cache, must-revalidate');
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
 // Only start a listener when run directly (local dev). On Vercel the app is
 // imported by api/index.js and invoked as a serverless function instead.

@@ -1151,7 +1151,12 @@ function mdToHtml(s){
   s=s.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>'); // [text](url)
   s=s.replace(/\*\*([^*\n]+)\*\*/g,'<strong>$1</strong>');           // **bold**
   s=s.replace(/^\s*#{1,6}\s*(.+?)\s*$/gm,'<strong>$1</strong>');     // ### headings
-  s=s.replace(/^\s*[-*_]{3,}\s*$/gm,'<div style="border-top:1px solid #e6eaf2;margin:7px 0"></div>'); // --- rule
+  s=s.replace(/^\s*[-*_]{3,}\s*$/gm,'\n<div style="border-top:1px solid #e6eaf2;margin:7px 0"></div>\n'); // --- rule
+  s=s.replace(/^[ \t]*[-*]\s+(.*)$/gm,'<span style="display:block;padding-left:2px">• $1</span>'); // - bullet lines
+  // The model uses real newlines; HTML collapses them, so convert to <br>
+  // (skip adding a break right after a block element we just inserted).
+  s=s.replace(/\n{2,}/g,'<br><br>').replace(/\n/g,'<br>');
+  s=s.replace(/(<\/div>)<br>/g,'$1').replace(/<br>(<span style="display:block)/g,'$1'); // tidy around blocks
   return s;
 }
 

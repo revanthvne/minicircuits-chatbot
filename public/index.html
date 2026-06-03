@@ -874,7 +874,17 @@ const DB = [
 // Featured products for homepage
 const FEATURED_PNS = ['ZX60-V82+','PHA-1H+','ERA-2+','ZFBP-2400+','ZFSC-2-2500+','ZYSWA-2-50DR+'];
 const CAT_CLS = {amp:'c-amp',flt:'c-flt',mix:'c-mix',att:'c-att',spl:'c-spl',sw:'c-sw'};
-const CAT_LBL = {amp:'Amplifier',flt:'Filter',mix:'Mixer',att:'Attenuator',spl:'Splitter',sw:'Switch'};
+const CAT_LBL = {amp:'Amplifier',flt:'Filter',mix:'Mixer',att:'Attenuator',spl:'Splitter',sw:'Switch',
+  xfmr:'Transformer/Balun',cpl:'Coupler',osc:'Oscillator',syn:'Synthesizer',mult:'Multiplier',
+  bias:'Bias Tee',dcb:'DC Block',chk:'RF Choke',lim:'Limiter',term:'Termination',adapter:'Adapter',
+  cable:'Cable',eq:'Equalizer',wg:'Waveguide',match:'Matching Pad',die:'MMIC Die',mod:'Modulator',
+  ps:'Phase Shifter',pd:'Phase Detector',pdet:'Power Detector',psen:'Power Sensor',test:'Test Solution',
+  acc:'Accessory',noncat:'Custom',uncategorized:'Catalog'};
+// Category label with graceful fallback to the product's group/cat (no more "UNDEFINED").
+function catLabel(p){ return CAT_LBL[p.cat] || p.group || (p.cat? p.cat.toUpperCase() : 'Product'); }
+// Build spec pills from whatever real values are present (no "undefined").
+function freqStr(p){ if(p.flo!=null&&p.fhi!=null) return `${p.flo}–${p.fhi} MHz`; if(p.fhi!=null) return `DC–${p.fhi} MHz`; return ''; }
+function pill(label,val,unit,hi){ if(val==null||val===''||val==='undefined') return ''; return `<span class="sp${hi?' hi':''}">${label}${val}${unit||''}</span>`; }
 
 // Render featured products
 (function(){
@@ -967,7 +977,7 @@ function toggleMaximize() {
 // ══════════════════════════════════════════════════
 let catalogData = [], catalogTab = 'all', catalogLoaded = false;
 
-const CAT_LABELS = {amp:'Amplifier',flt:'Filter',mix:'Mixer',att:'Attenuator',spl:'Splitter',sw:'Switch',xfmr:'Transformer/Balun',cpl:'Coupler',phs:'Phase Shifter',lim:'Limiter'};
+const CAT_LABELS = {amp:'Amplifier',flt:'Filter',mix:'Mixer',att:'Attenuator',spl:'Splitter',sw:'Switch',xfmr:'Transformer/Balun',cpl:'Coupler',phs:'Phase Shifter',ps:'Phase Shifter',lim:'Limiter',osc:'Oscillator',syn:'Synthesizer',mult:'Multiplier',bias:'Bias Tee',dcb:'DC Block',chk:'RF Choke',term:'Termination',adapter:'Adapter',cable:'Cable',eq:'Equalizer',wg:'Waveguide',match:'Matching Pad',die:'MMIC Die',mod:'Modulator',pd:'Phase Detector',pdet:'Power Detector',psen:'Power Sensor',test:'Test Solution',acc:'Accessory',uncategorized:'Catalog'};
 const CAT_COLORS = {amp:'#fee2e2:#991b1b',flt:'#ede9fe:#5b21b6',mix:'#dbeafe:#1e40af',att:'#fef3c7:#92400e',spl:'#d1fae5:#064e3b',sw:'#f1f5f9:#334155',xfmr:'#e0f2fe:#075985',cpl:'#fce7f3:#9d174d',phs:'#f0fdf4:#166534',lim:'#fff7ed:#c2410c'};
 
 function catStyle(cat) {
@@ -981,20 +991,23 @@ function specBlock(p) {
   else if (p.rflo != null) rows.push(['RF', p.rflo+'–'+p.rfhi+' MHz']);
   if (p.gain != null)   rows.push(['Gain', p.gain+' dB']);
   if (p.nf   != null)   rows.push(['NF', p.nf+' dB']);
-  if (p.p1db != null)   rows.push(['P1dB', p.p1db+' dBm']);
-  if (p.il_db!= null)   rows.push(['IL', p.il_db+' dB']);
+  if ((p.p1o ?? p.p1db) != null) rows.push(['P1dB', (p.p1o ?? p.p1db)+' dBm']);
+  if ((p.il ?? p.il_db) != null) rows.push(['IL', (p.il ?? p.il_db)+' dB']);
   if (p.atten!= null)   rows.push(['Atten', p.atten+' dB']);
-  if (p.cvloss!=null)   rows.push(['Conv Loss', p.cvloss+' dB']);
   if (p.iso  != null)   rows.push(['Iso', p.iso+' dB']);
-  if (p.impedance!=null)rows.push(['Imp', p.impedance]);
+  if (p.impedance!=null)rows.push(['Imp', p.impedance+'Ω'+(p.impedance_ratio?' ('+p.impedance_ratio+':1)':'')]);
   if (p.case_style)     rows.push(['Case', p.case_style]);
   return rows.slice(0,4).map(r=>`<div class="cs-spec"><div class="cs-spec-l">${r[0]}</div><div class="cs-spec-v">${r[1]}</div></div>`).join('');
 }
 
 function renderCard(p) {
-  const label  = CAT_LABELS[p.cat] || p.cat;
-  const price  = p.price > 0 ? '$'+p.price.toFixed(2) : 'Quote';
-  const inStock = p.stock > 0;
+  const label  = CAT_LABELS[p.cat] || p.group || (p.cat ? p.cat.toUpperCase() : 'Product');
+  const hasPrice = typeof p.price==='number' && p.price>0;
+  const price  = hasPrice ? '$'+p.price.toFixed(2) : 'See pricing';
+  // We don't have live stock data yet, so don't claim "Out of stock" for everything.
+  const stockHtml = (p.stock==null)
+    ? `<span class="cs-stock">Live availability →</span>`
+    : `<span class="cs-stock ${p.stock>0?'in':'out'}">${p.stock>0 ? p.stock.toLocaleString()+' in stock' : 'Out of stock'}</span>`;
   return `<div class="cs-card" onclick="openChatPN('${p.pn}')">
     <div class="cs-card-cat" style="${catStyle(p.cat)}">${label}</div>
     <div class="cs-card-pn">${p.pn}</div>
@@ -1002,7 +1015,7 @@ function renderCard(p) {
     <div class="cs-card-specs">${specBlock(p)}</div>
     <div class="cs-card-footer">
       <span class="cs-price">${price}</span>
-      <span class="cs-stock ${inStock?'in':'out'}">${inStock ? p.stock.toLocaleString()+' in stock' : 'Out of stock'}</span>
+      ${stockHtml}
       <button class="cs-ask-btn" onclick="event.stopPropagation();qSend('Tell me about ${p.pn}')">Ask Minny ⚡</button>
     </div>
   </div>`;
@@ -1081,17 +1094,42 @@ function rGreet(){return`<div style="font-size:13.5px;">Heyyy!! ⚡🤖 I'm <str
 // ══════════════════════════════════════════════════
 function card(p,sp,isOrig,cmp){
   sp=sp||{};
+  // Build pills per category, but only from values that actually exist.
   let pills='';
-  if(p.cat==='amp') pills=`<span class="sp${sp.maxNF&&p.nf<=sp.maxNF?' hi':''}">NF:${p.nf}dB</span><span class="sp">G:${p.gain}dB</span><span class="sp hi">P1dB:${p.p1o}dBm</span><span class="sp">${p.flo}–${p.fhi}MHz</span><span class="sp">${p.vcc}V/${p.icc}mA</span>`;
-  else if(p.cat==='flt') pills=`<span class="sp hi">IL:${p.il}dB</span><span class="sp">Rej:${p.rej}dBc</span><span class="sp">${p.flo||0}–${p.fhi}MHz</span>`;
-  else if(p.cat==='att') pills=`<span class="sp hi">${p.atten}dB</span><span class="sp">DC–${p.fhi}MHz</span><span class="sp">${p.pwr}mW</span>`;
-  else if(p.cat==='mix') pills=`<span class="sp hi">CL:${p.cvloss}dB</span><span class="sp">LO:${p.lopwr}dBm</span><span class="sp">IIP3:${p.iip3}dBm</span>`;
-  else if(p.cat==='spl') pills=`<span class="sp hi">IL:${p.il}dB</span><span class="sp">Iso:${p.iso}dB</span><span class="sp">${p.flo}–${p.fhi}MHz</span>`;
-  else if(p.cat==='sw')  pills=`<span class="sp hi">Iso:${p.iso}dB</span><span class="sp">${p.topo}</span><span class="sp">${p.spd}ns</span>`;
+  const f=freqStr(p);
+  if(p.cat==='amp'){
+    pills=pill('NF: ',p.nf,' dB',sp.maxNF&&p.nf<=sp.maxNF)+pill('G: ',p.gain,' dB')+pill('P1dB: ',p.p1o,' dBm',true)+(f?`<span class="sp">${f}</span>`:'')+pill('',p.vcc!=null&&p.icc!=null?`${p.vcc}V/${p.icc}mA`:null,'');
+  } else if(p.cat==='flt'){
+    pills=pill('IL: ',p.il,' dB',true)+pill('Rej: ',p.rej,' dBc')+(f?`<span class="sp">${f}</span>`:'');
+  } else if(p.cat==='att'){
+    pills=pill('',p.atten,' dB',true)+(f?`<span class="sp">${f}</span>`:'');
+  } else if(p.cat==='mix'){
+    pills=pill('CL: ',p.il,' dB',true)+(f?`<span class="sp">${f}</span>`:'');
+  } else if(p.cat==='spl'||p.cat==='cpl'){
+    pills=pill('IL: ',p.il,' dB',true)+pill('Iso: ',p.iso,' dB')+(f?`<span class="sp">${f}</span>`:'');
+  } else if(p.cat==='sw'){
+    pills=pill('Iso: ',p.iso,' dB',true)+(f?`<span class="sp">${f}</span>`:'');
+  } else if(p.cat==='xfmr'){
+    pills=(p.impedance_ratio?`<span class="sp hi">${p.impedance_ratio}:1</span>`:'')+pill('',p.impedance!=null?`${p.impedance}Ω`:null)+(f?`<span class="sp">${f}</span>`:'')+(p.technology?`<span class="sp">${p.technology}</span>`:'');
+  } else {
+    // generic: frequency + any impedance + interface/package
+    pills=(f?`<span class="sp hi">${f}</span>`:'')+pill('',p.impedance!=null?`${p.impedance}Ω`:null)+(p.case_style?`<span class="sp">${p.case_style}</span>`:'');
+  }
+  if(!pills && f) pills=`<span class="sp">${f}</span>`;
   let diff='';
   if(cmp&&p.cat==='amp'){const d=[];if(p.nf>cmp.nf)d.push(`NF +${Math.round((p.nf-cmp.nf)*100)/100}dB worse`);if(p.gain<cmp.gain)d.push(`Gain −${Math.round((cmp.gain-p.gain)*100)/100}dB`);if(p.p1o>cmp.p1o)d.push(`P1dB +${p.p1o-cmp.p1o}dBm better`);if(d.length)diff=`<div class="diffwarn">⚠️ vs. original: ${d.join(' · ')}</div>`;}
-  const stockVal = p.stock===1||p.stock===true;
-  return`<div class="pcard" onclick="qSend('Tell me about ${p.pn}')"><span class="ctag ${CAT_CLS[p.cat]}">${CAT_LBL[p.cat]}${isOrig?' — Original':''}</span><div class="pn">${p.pn}</div><div class="pdesc">${p.desc}</div><div class="spills">${pills}</div>${diff}<div class="prow"><span class="pprice">$${p.price}</span><span class="pstock ${stockVal?'':'no'}">${stockVal?'✓ In Stock':'✗ Check Avail.'}</span></div></div>`;
+  // Price: show a number only if we actually have one; otherwise a link to the
+  // live product page (which is where real pricing/stock lives).
+  const link = p.url||('https://www.minicircuits.com/WebStore/dashboard.html?model='+encodeURIComponent(p.pn));
+  const hasPrice = typeof p.price==='number' && p.price>0;
+  const priceHtml = hasPrice
+    ? `<span class="pprice">$${p.price}</span>`
+    : `<a href="${link}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="font-size:11px;font-weight:700;color:#003087;text-decoration:none">See live pricing →</a>`;
+  const inStock = p.stock>0 || p.stock===true;
+  const stockHtml = (p.stock==null) ? '' : `<span class="pstock ${inStock?'':'no'}">${inStock?'✓ In Stock':'✗ Check Avail.'}</span>`;
+  const clsTag = CAT_CLS[p.cat]||'';
+  const desc = p.desc ? `<div class="pdesc">${p.desc}</div>` : '';
+  return`<div class="pcard" onclick="qSend('Tell me about ${p.pn}')"><span class="ctag ${clsTag}">${catLabel(p)}${isOrig?' — Original':''}</span><div class="pn">${p.pn}</div>${desc}<div class="spills">${pills}</div>${diff}<div class="prow">${priceHtml}${stockHtml}</div></div>`;
 }
 
 // ══════════════════════════════════════════════════

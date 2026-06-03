@@ -1,0 +1,14 @@
+# Keep the serverless bundle lean — exclude things not needed at runtime.
+node_modules
+.env
+.env.*
+scraper/catalog_raw.json
+scraper/.phase1_parts.json
+scraper/.phase2_checkpoint.json
+scraper/phase1.log
+scraper/*.backup.js
+server.v1.backup.js
+minny.html
+minicircuits_site.html
+db/products.db
+*.log

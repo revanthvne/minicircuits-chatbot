@@ -1,0 +1,23 @@
+[
+  {"pn":"ZX60-V82+",    "cat":"amp","type":"gain_block","flo":300,  "fhi":8000,  "gain":17.0,"nf":2.7,"p1o":20,  "oip3":32,"vcc":5,  "icc":68, "pkg":"SMA",    "price":18.95,"stock":true,"desc":"Wideband Gain Block, 0.3–8 GHz"},
+  {"pn":"ERA-2+",       "cat":"amp","type":"gain_block","flo":0,    "fhi":6000,  "gain":15.6,"nf":3.4,"p1o":12.5,"oip3":23,"vcc":3.5,"icc":35, "pkg":"SOT-89", "price":3.95, "stock":true,"desc":"MMIC Cascadable Gain Block, DC–6 GHz"},
+  {"pn":"ERA-6+",       "cat":"amp","type":"gain_block","flo":0,    "fhi":4000,  "gain":11.5,"nf":3.4,"p1o":18.5,"oip3":29,"vcc":5,  "icc":90, "pkg":"SOT-89", "price":4.95, "stock":true,"desc":"High-Power MMIC Gain Block, DC–4 GHz"},
+  {"pn":"PHA-1H+",      "cat":"amp","type":"lna",       "flo":50,   "fhi":6000,  "gain":20.0,"nf":1.7,"p1o":18,  "oip3":29,"vcc":5,  "icc":55, "pkg":"QFN-16", "price":8.95, "stock":true,"desc":"Low Noise Amplifier, 0.05–6 GHz, NF=1.7 dB"},
+  {"pn":"ZX60-83LN+",   "cat":"amp","type":"lna",       "flo":700,  "fhi":8300,  "gain":20.5,"nf":1.4,"p1o":14,  "oip3":27,"vcc":5,  "icc":75, "pkg":"SMA",    "price":39.95,"stock":true,"desc":"Low Noise Amplifier, 0.7–8.3 GHz, NF=1.4 dB"},
+  {"pn":"GVA-81+",      "cat":"amp","type":"gain_block","flo":0,    "fhi":6000,  "gain":12.5,"nf":4.0,"p1o":20,  "oip3":32,"vcc":5,  "icc":110,"pkg":"SOT-89", "price":5.95, "stock":true,"desc":"High-IP3 MMIC Gain Block, DC–6 GHz"},
+  {"pn":"ZVA-213-S+",   "cat":"amp","type":"driver",    "flo":20,   "fhi":13000, "gain":14.0,"nf":3.5,"p1o":22,  "oip3":33,"vcc":5,  "icc":250,"pkg":"SMA",    "price":149.95,"stock":false,"desc":"Wideband Driver Amplifier, 0.02–13 GHz"},
+  {"pn":"BFCN-1445+",   "cat":"flt","type":"bandpass",  "flo":1400, "fhi":1490,  "il":1.2,"rej":35,"rl":15,"pkg":"0805",  "price":2.95, "stock":true,"desc":"Ceramic BPF, 1400–1490 MHz (GPS L1)"},
+  {"pn":"ZFBP-2400+",   "cat":"flt","type":"bandpass",  "flo":2400, "fhi":2500,  "il":1.5,"rej":30,"rl":14,"pkg":"SMA",    "price":24.95,"stock":true,"desc":"Bandpass Filter, 2.4–2.5 GHz (WiFi/ISM)"},
+  {"pn":"SLP-50+",      "cat":"flt","type":"lowpass",   "flo":0,    "fhi":50,    "il":0.3,"rej":40,"rl":18,"pkg":"0805",  "price":1.95, "stock":true,"desc":"LTCC Lowpass Filter, fc=50 MHz"},
+  {"pn":"SHP-100+",     "cat":"flt","type":"highpass",  "flo":100,  "fhi":6000,  "il":0.4,"rej":38,"rl":17,"pkg":"0805",  "price":2.25, "stock":true,"desc":"LTCC Highpass Filter, fc=100 MHz"},
+  {"pn":"ZX05-C42MH+",  "cat":"mix","type":"dbl_bal",   "cvloss":6.5,"lopwr":10,"iip3":13,"rflo":2000,"rfhi":4200,"ifhi":1500,"pkg":"SMA",    "price":54.95,"stock":true,"desc":"Double Balanced Mixer, RF 2–4.2 GHz"},
+  {"pn":"ADE-1+",       "cat":"mix","type":"dbl_bal",   "cvloss":5.0,"lopwr":7, "iip3":15,"rflo":500, "rfhi":500, "ifhi":500, "pkg":"SOIC-8", "price":7.95, "stock":true,"desc":"Double Balanced Mixer, 0.5–500 MHz"},
+  {"pn":"VAT-3+",       "cat":"att","type":"fixed",     "fhi":6000,"atten":3,  "pwr":1000,"pkg":"SMA","price":12.95,"stock":true,"desc":"Fixed Attenuator, 3 dB, DC–6 GHz"},
+  {"pn":"VAT-6+",       "cat":"att","type":"fixed",     "fhi":6000,"atten":6,  "pwr":1000,"pkg":"SMA","price":12.95,"stock":true,"desc":"Fixed Attenuator, 6 dB, DC–6 GHz"},
+  {"pn":"VAT-10+",      "cat":"att","type":"fixed",     "fhi":6000,"atten":10, "pwr":1000,"pkg":"SMA","price":12.95,"stock":true,"desc":"Fixed Attenuator, 10 dB, DC–6 GHz"},
+  {"pn":"ZFSC-2-2500+", "cat":"spl","type":"resistive", "flo":2,"fhi":2500, "il":3.5,"iso":22,"ways":2,"pkg":"SMA","price":18.95,"stock":true,"desc":"2-Way 0° Splitter/Combiner, 2–2500 MHz"},
+  {"pn":"ZX10-2-12+",   "cat":"spl","type":"wilkinson", "flo":2,"fhi":2000, "il":3.2,"iso":20,"ways":2,"pkg":"SMA","price":16.95,"stock":true,"desc":"2-Way Splitter/Combiner, 0.02–2 GHz"},
+  {"pn":"ZFRSC-183+",   "cat":"spl","type":"wilkinson", "flo":2,"fhi":18300,"il":4.0,"iso":18,"ways":2,"pkg":"SMA","price":89.95,"stock":true,"desc":"Ultra-Wideband 2-Way Splitter, 0.002–18.3 GHz"},
+  {"pn":"ZYSWA-2-50DR+","cat":"sw", "type":"reflective","fhi":5000,"iso":60,"topo":"SPDT","p1db":30,"spd":1,  "ctlv":3.3,"pkg":"QFN-16","price":14.95,"stock":true,"desc":"Ultra-Fast SPDT Switch, DC–5 GHz, 1 ns"},
+  {"pn":"ZASWA-2-50DR+","cat":"sw", "type":"absorptive","fhi":6000,"iso":55,"topo":"SPDT","p1db":31,"spd":1.5,"ctlv":3.3,"pkg":"QFN-16","price":16.95,"stock":true,"desc":"SPDT Absorptive Switch, DC–6 GHz"}
+]

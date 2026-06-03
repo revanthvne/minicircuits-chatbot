@@ -1,0 +1,22 @@
+# Secrets — never commit
+.env
+.env.*
+!.env.example
+
+# Dependencies (Vercel installs from package.json)
+node_modules/
+
+# Scraper working files
+scraper/.phase1_parts.json
+scraper/.phase2_checkpoint.json
+scraper/phase1.log
+scraper/*.backup.js
+
+# Local backups
+*.backup.js
+server.v1.backup.js
+
+# OS / editor
+.DS_Store
+*.log
+.vercel

@@ -1,0 +1,23 @@
+{
+  "name": "minicircuits-chatbot",
+  "version": "1.0.0",
+  "description": "Mini-Circuits RF chatbot powered by Minny ⚡🤖 + Claude AI",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "seed": "node db/seed.js",
+    "scrape:phase1": "node scraper/scrape.js --phase 1",
+    "scrape:noncat": "node scraper/scrape.js --phase noncat",
+    "scrape:sitemap": "node scraper/scrape.js --phase sitemap",
+    "scrape:phase2": "node scraper/scrape.js --phase 2",
+    "refresh": "node scraper/refresh.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "nodemailer": "^8.0.6"
+  }
+}

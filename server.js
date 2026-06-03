@@ -278,7 +278,14 @@ Mention up to 3 parts total unless asked for more. For each, only state specs th
 Price/stock: if unknown, write "see live pricing on the product page" with the datasheet link — never guess a number or show "$undefined".
 Calculations: formula → substituted values → result.
 Troubleshooting: numbered steps.
-HTML allowed: <strong>, <em>, <br>, <ul><li>, <table>. Keep minimal.
+HTML allowed: <strong>, <em>, <br>, <ul><li>, <table>, <a>. Keep minimal.
+
+LINKS: the chat renders HTML. Write links as HTML anchors: <a href="URL" target="_blank">text</a>. (Markdown links also render, but prefer HTML.) Always link the Datasheet and Product Page when you mention them. You don't need to manually link part numbers — every part number you bold (<strong>PN</strong>) is auto-linked to its product page by the system.
+
+TAPPABLE CHIPS — whenever your message ASKS something (a question or the fill-in template), end the message with one line, exactly:
+CHIPS:: option one :: option two :: option three
+These render as buttons the user can tap to answer. Rules: 2–5 chips, each under ~24 characters, plain text (no HTML/emoji), separated by " :: ". Always include a helpful catch-all like "Not sure" or "Just show all" when relevant. Do NOT add a CHIPS line to a pure recommendation/answer that asks nothing. Example for a balun impedance question:
+CHIPS:: 50Ω :: 75Ω :: Not sure
 
 RF EXPERTISE (calculations — show work)
 • VSWR↔RL: RL(dB) = −20·log₁₀((VSWR−1)/(VSWR+1))
@@ -400,8 +407,29 @@ app.post('/api/chat', requirePasscode, async (req, res) => {
       messages.push({ role: 'user', content: toolResults });
     }
 
-    const mentionedProducts = extractMentionedProducts(finalText);
-    res.json({ reply: finalText, products: mentionedProducts.slice(0, 4), tokens: usage });
+    let reply = finalText;
+    const mentionedProducts = extractMentionedProducts(reply);
+
+    // 1) Pull out tappable answer chips: a line "CHIPS:: a :: b :: c".
+    let suggestions = [];
+    const chipM = reply.match(/CHIPS::\s*(.+?)\s*$/m);
+    if (chipM) {
+      suggestions = chipM[1].split('::').map(x => x.trim()).filter(Boolean).slice(0, 6);
+      reply = reply.replace(chipM[0], '').trim();
+    }
+
+    // 2) Auto-hyperlink every recommended part number to its product page,
+    //    whether the model bolded it as <strong>PN</strong> or **PN**.
+    for (const p of mentionedProducts) {
+      if (!p.url) continue;
+      const e = p.pn.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      reply = reply.replace(
+        new RegExp(`(?:<strong>|\\*\\*)${e}(?:</strong>|\\*\\*)`, 'g'),
+        `<a href="${p.url}" target="_blank" rel="noopener"><strong>${p.pn}</strong></a>`
+      );
+    }
+
+    res.json({ reply, products: mentionedProducts.slice(0, 4), suggestions, tokens: usage });
 
   } catch (err) {
     console.error('Claude API error:', err.status, err.message);

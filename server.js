@@ -28,6 +28,7 @@ app.use(express.json());
 // Serve the SPA but don't let browsers cache the HTML across deploys (otherwise
 // users keep seeing an old index.html / old card renderer after we ship a fix).
 app.use(express.static(path.join(__dirname, 'public'), {
+  index: false, // "/" is handled by serveHome so we can inject the widget
   setHeaders: (res, fp) => { if (fp.endsWith('.html')) res.setHeader('Cache-Control', 'no-cache, must-revalidate'); },
 }));
 
@@ -586,9 +587,29 @@ app.post('/api/escalate', requirePasscode, async (req, res) => {
   }
 });
 
-app.get('*', (req, res) => {
+// Serve the mirrored homepage, injecting the Minny widget as an EXTERNAL script
+// with an absolute URL (the page sets <base href="minicircuits.com">, so a
+// relative/inline widget wouldn't load reliably — an absolute external src does).
+const fs = require('fs');
+let MIRROR_HTML = null;
+function injectWidget(host) {
+  if (MIRROR_HTML == null) MIRROR_HTML = fs.readFileSync(path.join(__dirname, 'public', 'index.html'), 'utf8');
+  const proto = 'https';
+  const tag = `<script src="${proto}://${host}/minny-widget.js?v=${WIDGET_V}"></script>`;
+  return MIRROR_HTML.includes('<!--MINNY_WIDGET-->')
+    ? MIRROR_HTML.replace('<!--MINNY_WIDGET-->', tag)
+    : MIRROR_HTML.replace(/<\/body>/i, tag + '</body>');
+}
+const WIDGET_V = Date.now();
+function serveHome(req, res) {
   res.set('Cache-Control', 'no-cache, must-revalidate');
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  res.set('Content-Type', 'text/html; charset=utf-8');
+  res.send(injectWidget(req.headers.host));
+}
+app.get('/', serveHome);
+app.get('*', (req, res) => {
+  // static assets are handled by express.static above; everything else = SPA/home
+  serveHome(req, res);
 });
 
 // Only start a listener when run directly (local dev). On Vercel the app is

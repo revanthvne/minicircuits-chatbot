@@ -547,8 +547,9 @@ async function mirrorDashboard(pn) {
   return h;
 }
 function rewriteDashboard(h) {
-  // A) product links -> our /p/  (root-relative, so unaffected by <base>)
-  h = h.replace(/(href|action)\s*=\s*"(?:https?:\/\/[^"]*minicircuits\.com)?(?:\.\.\/|\/)?WebStore\/(?:dashboard|modelSearch)\.html\?model=([^"&]+)[^"]*"/gi, (m, a, enc) => `${a}="/p/${enc}"`);
+  // A) product links -> our /p/  (root-relative, so unaffected by <base>).
+  //    WebStore/ prefix is optional (category tables use bare modelSearch.html?model=).
+  h = h.replace(/(href|action)\s*=\s*"(?:https?:\/\/[^"]*minicircuits\.com)?(?:\.\.\/|\/)?(?:WebStore\/)?(?:dashboard|modelSearch)\.html\?model=([^"&]+)[^"]*"/gi, (m, a, enc) => `${a}="/p/${enc}"`);
   // B) downloadable files -> /dl proxy (served from our domain)
   h = h.replace(/href\s*=\s*"((?:https?:\/\/[^"]*minicircuits\.com)?(?:\.\.\/|\/)?(?:pdfs|pages\/s-params|case_style|pcb)\/[^"]+)"/gi, (m, p) => {
     let abs = p.startsWith('http') ? p : MC + '/' + p.replace(/^(?:\.\.\/|\/)+/, '');

@@ -194,6 +194,14 @@ const TOOLS = [{
       limit:     { type: 'number', description: 'Max results to return (default 12, max 25).' },
     },
   },
+}, {
+  name: 'get_product_details',
+  description: 'Get LIVE pricing tiers, current stock, and the full downloadable file list (datasheet, View Data, View Graphs, S-parameters, case-style drawing, PCB layout, eval board, etc.) for ONE specific part number, straight from minicircuits.com. Call this whenever the user asks about a specific part — its price, availability/stock, datasheet, or files — or says "tell me about <PN>". Returns real data; if found is false, the part page could not be loaded.',
+  input_schema: {
+    type: 'object',
+    properties: { pn: { type: 'string', description: 'Exact Mini-Circuits part number, e.g. HFTC-16+, WVA-71863HP+.' } },
+    required: ['pn'],
+  },
 }];
 
 // Compact, non-catalog summary (small enough to keep in the prompt)
@@ -211,6 +219,12 @@ You have a tool, search_catalog, backed by the FULL Mini-Circuits catalog (~${AL
 • ALWAYS use search_catalog to find or recommend parts. Every part number you name MUST come from a tool result.
 • For a frequency RANGE ("5 to 1800 MHz") pass freq_min + freq_max so only parts that cover the whole band come back. For a single frequency use freq_mhz.
 • You may call it multiple times to refine (e.g. widen frequency, drop a constraint) if the first search is too narrow or empty.
+
+LIVE PRODUCT DETAILS — pricing, stock & files
+When the user asks about a SPECIFIC part (its price, stock/availability, datasheet, S-parameters, or "tell me about <PN>"), call get_product_details with that part number. It returns LIVE data from minicircuits.com. Then present:
+• Pricing & Availability: render the quantity/unit-price tiers as a small HTML <table> (NOT a markdown table — markdown tables don't render here). Show the current stock exactly as returned (e.g. "more than 1,000"). If price_tiers/stock are absent, say pricing isn't published online and offer escalation — never invent numbers.
+• Data, Drawings & Downloads: list the returned files as HTML links — Datasheet, View Data, View Graphs, S-Parameters, Case Style drawing, PCB Layout, Eval Board, etc. Use the exact href values from the tool (e.g. <a href="URL" target="_blank">Datasheet (PDF)</a>).
+Only state pricing/stock/files that the tool actually returned.
 
 ACCURACY — HARD RULES (do not break these)
 • State ONLY spec values that appear in the tool result for that exact part. Frequency range, gain, NF, P1dB, impedance, package/case, turns ratio, temperature, price, stock — if a value is NOT in the result, you may NOT state a number. Say "see datasheet" or leave it out. NEVER invent, estimate, or back-fill a spec to match what the user asked for.
@@ -408,6 +422,68 @@ app.get('/api/img', async (req, res) => {
   res.status(404).end();
 });
 
+// ── Live product details (pricing, stock, files) ────────────────────────────
+// The minicircuits.com dashboard is server-rendered ONLY when a session cookie
+// is present. We grab a session cookie from the homepage, then fetch the
+// dashboard for a part and parse its price tiers, current stock, and the full
+// "Data, Drawings & Downloads" file list. Results are cached.
+function mcGet(path, cookie) {
+  return new Promise((resolve) => {
+    const req = https.request({
+      hostname: 'www.minicircuits.com', path, method: 'GET',
+      headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'text/html', 'Cookie': cookie || '' },
+    }, (r) => { let d = ''; r.on('data', c => d += c); r.on('end', () => resolve({ status: r.statusCode, setCookie: r.headers['set-cookie'], body: d })); });
+    req.on('error', () => resolve({ status: 0, body: '' }));
+    req.setTimeout(12000, () => { req.destroy(); resolve({ status: 0, body: '' }); });
+    req.end();
+  });
+}
+let mcCookie = null, mcCookieAt = 0;
+async function getMcCookie() {
+  if (mcCookie && Date.now() - mcCookieAt < 25 * 60 * 1000) return mcCookie;
+  const home = await mcGet('/', '');
+  mcCookie = (home.setCookie || []).map(c => c.split(';')[0]).join('; ');
+  mcCookieAt = Date.now();
+  return mcCookie;
+}
+const productCache = new Map();
+async function getProductDetails(pn) {
+  pn = String(pn || '').trim();
+  if (!pn) return { found: false };
+  const cached = productCache.get(pn);
+  if (cached && Date.now() - cached.at < 30 * 60 * 1000) return cached.data;
+  let cookie = await getMcCookie();
+  let r = await mcGet(`/WebStore/dashboard.html?model=${encodeURIComponent(pn)}`, cookie);
+  if (r.body.length < 2000) { mcCookie = null; cookie = await getMcCookie(); r = await mcGet(`/WebStore/dashboard.html?model=${encodeURIComponent(pn)}`, cookie); }
+  const html = r.body || '';
+  const data = { pn, found: html.length > 2000, url: `https://www.minicircuits.com/WebStore/dashboard.html?model=${encodeURIComponent(pn)}` };
+  const tm = html.match(/<title>([^<|]+)/); if (tm) data.title = tm[1].trim();
+  const tiers = [...html.matchAll(/<td class="td_length">\s*([\d,]+)\s*<\/td>\s*<td class="td_length2">\s*(?:&#36;|\$)?\s*([\d.]+)\s*<\/td>/g)]
+    .map(m => ({ qty: parseInt(m[1].replace(/,/g, ''), 10), price: parseFloat(m[2]) }));
+  if (tiers.length) data.price_tiers = tiers;
+  const sm = html.match(/<span[^>]*class="[^"]*current_stock_number[^"]*"[^>]*>([^<]*)<\/span>/i);
+  if (sm) { const v = sm[1].replace(/&[a-z#0-9]+;/g, ' ').replace(/\s+/g, ' ').trim(); if (v) data.stock = v; }
+  const decode = (s) => s.replace(/&amp;/g, '&').replace(/&#36;/g, '$').replace(/&[a-z#0-9]+;/g, ' ').replace(/\s+/g, ' ').trim();
+  const files = []; const seen = new Set(); let lm;
+  const linkRe = /<a[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi;
+  while ((lm = linkRe.exec(html)) !== null) {
+    let href = lm[1]; const label = decode(lm[2].replace(/<[^>]+>/g, ''));
+    if (!/\/pdfs\/|\/pages\/s-params\/|\/case_style\/|\/pcb\/|gerber/i.test(href)) continue;
+    if (/patent|product-catalog|case_style_search/i.test(href)) continue;
+    if (!href.startsWith('http')) href = 'https://www.minicircuits.com' + (href.startsWith('/') ? '' : '/') + href.replace(/^\.\.\//, '/');
+    if (seen.has(href) || !label) continue; seen.add(href);
+    files.push({ label, href });
+  }
+  if (files.length) data.files = files.slice(0, 16);
+  productCache.set(pn, { data, at: Date.now() });
+  return data;
+}
+
+app.get('/api/product', async (req, res) => {
+  try { res.json(await getProductDetails(req.query.pn)); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // ── Main chat endpoint (Claude tool-use loop) ────────────────────────────────
 app.post('/api/chat', requirePasscode, async (req, res) => {
   const { message, history = [] } = req.body;
@@ -440,11 +516,14 @@ app.post('/api/chat', requirePasscode, async (req, res) => {
       if (response.stop_reason !== 'tool_use' || toolUses.length === 0) break;
 
       messages.push({ role: 'assistant', content: response.content });
-      const toolResults = toolUses.map(tu => ({
+      const toolResults = await Promise.all(toolUses.map(async (tu) => ({
         type: 'tool_result',
         tool_use_id: tu.id,
-        content: JSON.stringify(tu.name === 'search_catalog' ? searchCatalog(tu.input) : { error: 'unknown tool' }),
-      }));
+        content: JSON.stringify(
+          tu.name === 'search_catalog'      ? searchCatalog(tu.input)
+        : tu.name === 'get_product_details' ? await getProductDetails((tu.input || {}).pn)
+        : { error: 'unknown tool' }),
+      })));
       messages.push({ role: 'user', content: toolResults });
     }
 

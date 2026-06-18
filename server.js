@@ -557,6 +557,9 @@ function rewriteDashboard(h) {
   });
   // C) absolute minicircuits.com asset URLs -> our same-origin /mc proxy
   h = h.replace(/(src|href)\s*=\s*"https?:\/\/(?:www\.)?minicircuits\.com\/([^"]+\.(?:css|js|png|jpe?g|gif|svg|woff2?|ttf|eot|ico|webp)(?:\?[^"]*)?)"/gi, (m, a, rest) => `${a}="/mc/${rest}"`);
+  // C2) ROOT-relative asset paths (e.g. /images/case_style/X.png) — <base> would
+  //     send these to our origin (404), so route them through /mc too.
+  h = h.replace(/(src|href)\s*=\s*"\/(?!mc\/|p\/|dl\?|assets\/|minny-widget)([^"]+\.(?:css|js|png|jpe?g|gif|svg|woff2?|ttf|eot|ico|webp)(?:\?[^"]*)?)"/gi, (m, a, rest) => `${a}="/mc/${rest}"`);
   // D) neutralize remaining page navigation (.html pages) -> our home
   h = h.replace(/href\s*=\s*"(?!\/p\/|\/dl\?|\/mc\/|#|mailto:|javascript:|https?:\/\/(?:fonts\.|js\.|track\.|px\.|www\.google|i0\.wp|blog\.))(?:https?:\/\/[^"]*minicircuits\.com)?(?:\.\.\/|\/)?[^"]*\.html[^"]*"/gi, 'href="/"');
   // E) don't let the Buy form post to their store

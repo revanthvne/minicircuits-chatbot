@@ -461,26 +461,30 @@ img{max-width:100%}
   </div>
 </nav>
 
-<!-- ══ HERO BANNER (Mini-Circuits style) ═════════════ -->
-<section style="background:linear-gradient(115deg,#253b98 0%,#1c2f86 45%,#00183c 100%);position:relative;overflow:hidden">
-  <div style="max-width:1280px;margin:0 auto;padding:52px 24px 58px;position:relative;z-index:2">
-    <div style="color:#ff9100;font-family:'Cairo',sans-serif;font-weight:700;letter-spacing:.22em;font-size:14px;text-transform:uppercase;margin-bottom:10px">RF · Microwave · mmWave</div>
-    <h1 style="color:#fff;font-family:'Cairo',sans-serif;font-weight:700;font-size:44px;line-height:1.06;margin:0 0 14px;max-width:760px">The Industry's Widest Selection of RF &amp; Microwave Components</h1>
-    <p style="color:#c9d9e6;font-size:18px;max-width:620px;margin:0 0 26px;line-height:1.5">7,500+ models in stock — amplifiers, filters, mixers, switches, baluns and more. Ask Minny to find the exact part for your design.</p>
-    <button onclick="openChat('I need help finding an RF component')" style="background:#ff9100;color:#fff;border:none;border-radius:4px;padding:13px 26px;font-size:16px;font-weight:700;font-family:'Cairo',sans-serif;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.25)">⚡ Find your part with Minny</button>
-    <div style="margin-top:30px;display:flex;gap:8px">
-      <span style="width:9px;height:9px;border-radius:50%;background:#ff9100"></span>
-      <span style="width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.4)"></span>
-      <span style="width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.4)"></span>
-      <span style="width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.4)"></span>
-    </div>
+<!-- ══ HERO CAROUSEL (real Mini-Circuits banners) ════ -->
+<section id="heroCarousel" style="position:relative;overflow:hidden;background:#00183c;cursor:pointer" onclick="openChat('I need help finding an RF component')">
+  <img class="hero-slide" src="/assets/prod/hero1.png" alt="AEC-Q200 Qualified Parts for Automotive Systems" style="width:100%;display:block">
+  <img class="hero-slide" src="/assets/prod/hero2.jpg" alt="Frequency Mixers" style="width:100%;display:none">
+  <img class="hero-slide" src="/assets/prod/hero3.jpg" alt="Low Additive Phase Noise Amplifiers" style="width:100%;display:none">
+  <img class="hero-slide" src="/assets/prod/hero4.jpg" alt="Space Upscreening" style="width:100%;display:none">
+  <div style="position:absolute;bottom:16px;left:50%;transform:translateX(-50%);display:flex;gap:9px;z-index:3">
+    <span class="hero-dot" style="width:11px;height:11px;border-radius:50%;background:#ff9100;cursor:pointer"></span>
+    <span class="hero-dot" style="width:11px;height:11px;border-radius:50%;background:rgba(255,255,255,.5);cursor:pointer"></span>
+    <span class="hero-dot" style="width:11px;height:11px;border-radius:50%;background:rgba(255,255,255,.5);cursor:pointer"></span>
+    <span class="hero-dot" style="width:11px;height:11px;border-radius:50%;background:rgba(255,255,255,.5);cursor:pointer"></span>
   </div>
-  <svg viewBox="0 0 600 400" style="position:absolute;right:0;top:0;height:100%;opacity:.13;z-index:1" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="#fff" stroke-width="2">
-    <circle cx="480" cy="90" r="6"/><circle cx="540" cy="180" r="6"/><circle cx="430" cy="220" r="6"/><circle cx="520" cy="300" r="6"/>
-    <path d="M480 90 H300 M540 180 H360 V90 M430 220 H300 M520 300 H380 V180"/>
-    <rect x="250" y="60" width="60" height="60" rx="4"/><rect x="330" y="160" width="60" height="40" rx="4"/>
-  </svg>
 </section>
+<script>
+(function(){
+  var slides=[].slice.call(document.querySelectorAll('#heroCarousel .hero-slide'));
+  var dots=[].slice.call(document.querySelectorAll('#heroCarousel .hero-dot'));
+  var i=0;
+  function show(n){i=(n+slides.length)%slides.length;slides.forEach(function(s,k){s.style.display=k===i?'block':'none';});dots.forEach(function(d,k){d.style.background=k===i?'#ff9100':'rgba(255,255,255,.5)';});}
+  dots.forEach(function(d,k){d.addEventListener('click',function(e){e.stopPropagation();show(k);});});
+  setInterval(function(){show(i+1);},5500);
+  show(0);
+})();
+</script>
 
 <!-- ══ CATEGORY QUICK-LINKS ══════════════════════════ -->
 <div class="cat-strip">
@@ -503,75 +507,72 @@ img{max-width:100%}
       <div class="np-heading">New Products</div>
       <button class="np-cat-btn">New Products by Category ▾</button>
     </div>
-    <div class="np-grid">
+    <div style="display:flex;gap:18px;align-items:stretch;flex-wrap:wrap">
+     <div class="np-grid" style="flex:1;min-width:560px">
       <!-- Card 1 -->
-      <div class="np-card" onclick="openChatPN('ZX60-V82+')">
-        <div class="np-card-head">
-          <span class="np-cat-label">Amplifiers</span>
-          <span class="np-new-badge">NEW</span>
-        </div>
+      <div class="np-card" onclick="openChatPN('WVA-71863HP+')">
+        <div class="np-card-head"><span class="np-cat-label">WR12 Waveguide Amplifier</span></div>
         <div class="np-card-body">
-          <div class="np-img-area">📡</div>
-          <div class="np-pn">ZX60-V82+</div>
-          <div class="np-desc">Wideband Gain Block, 0.3–8 GHz</div>
+          <div class="np-img-area" style="height:130px;display:flex;align-items:center;justify-content:center"><img src="/assets/prod/wva.png" alt="WVA-71863HP+" style="max-height:120px;max-width:90%;object-fit:contain"></div>
+          <div class="np-pn">WVA-71863HP+</div>
           <ul class="np-specs">
-            <li>Gain: 17.0 dB</li>
-            <li>NF: 2.7 dB</li>
-            <li>P1dB: 20 dBm</li>
+            <li>71 to 86 GHz</li>
+            <li>+24.5 dBm P<sub>SAT</sub></li>
+            <li>39 dB gain</li>
+            <li>±1.5 dB gain flatness</li>
           </ul>
         </div>
       </div>
       <!-- Card 2 -->
-      <div class="np-card" onclick="openChatPN('PHA-1H+')">
-        <div class="np-card-head">
-          <span class="np-cat-label">LNA</span>
-          <span class="np-new-badge">NEW</span>
-        </div>
+      <div class="np-card" onclick="openChat('Tell me about the SSG-R7N6GD-RC signal generator')">
+        <div class="np-card-head"><span class="np-cat-label">USB &amp; Ethernet &amp; Daisy-Chain Signal Generator</span></div>
         <div class="np-card-body">
-          <div class="np-img-area">🔬</div>
-          <div class="np-pn">PHA-1H+</div>
-          <div class="np-desc">Low Noise Amplifier, 50 MHz–6 GHz</div>
+          <div class="np-img-area" style="height:130px;display:flex;align-items:center;justify-content:center"><img src="/assets/prod/ssg.png" alt="SSG-R7N6GD-RC" style="max-height:120px;max-width:90%;object-fit:contain"></div>
+          <div class="np-pn">SSG-R7N6GD-RC</div>
           <ul class="np-specs">
-            <li>NF: 1.7 dB</li>
-            <li>Gain: 20.0 dB</li>
-            <li>Package: QFN-16</li>
+            <li>700 to 6000 MHz</li>
+            <li>Two independently tunable channels</li>
+            <li>Cost effective, broadband signal generator</li>
+            <li>High output power, +24 dBm</li>
           </ul>
         </div>
       </div>
       <!-- Card 3 -->
-      <div class="np-card" onclick="openChatPN('ZFBP-2400+')">
-        <div class="np-card-head">
-          <span class="np-cat-label">Filters</span>
-          <span class="np-new-badge">NEW</span>
-        </div>
+      <div class="np-card" onclick="openChatPN('M4SWA4-34DR+')">
+        <div class="np-card-head"><span class="np-cat-label">MMIC Surface Mount SP4T RF Switch</span></div>
         <div class="np-card-body">
-          <div class="np-img-area">🔁</div>
-          <div class="np-pn">ZFBP-2400+</div>
-          <div class="np-desc">Bandpass Filter, 2.4–2.5 GHz (WiFi/ISM)</div>
+          <div class="np-img-area" style="height:130px;display:flex;align-items:center;justify-content:center"><img src="/assets/prod/m4swa4.png" alt="M4SWA4-34DR+" style="max-height:120px;max-width:90%;object-fit:contain"></div>
+          <div class="np-pn">M4SWA4-34DR+</div>
           <ul class="np-specs">
-            <li>IL: 1.5 dB</li>
-            <li>Rejection: 30 dBc</li>
-            <li>Package: SMA</li>
+            <li>Wideband, DC to 30 GHz</li>
+            <li>Low Insertion Loss, Typ. 1.8 dB</li>
+            <li>High Isolation, Typ. 47 dB</li>
+            <li>High Input IP3, Typ. +46 dBm</li>
           </ul>
         </div>
       </div>
       <!-- Card 4 -->
-      <div class="np-card" onclick="openChatPN('ZYSWA-2-50DR+')">
-        <div class="np-card-head">
-          <span class="np-cat-label">Switches</span>
-          <span class="np-new-badge">NEW</span>
-        </div>
+      <div class="np-card" onclick="openChat('Tell me about the BFHK-Series high-rejection LTCC filters')">
+        <div class="np-card-head"><span class="np-cat-label">High-Rejection LTCC Filters</span></div>
         <div class="np-card-body">
-          <div class="np-img-area">🔌</div>
-          <div class="np-pn">ZYSWA-2-50DR+</div>
-          <div class="np-desc">Ultra-Fast SPDT Switch, DC–5 GHz</div>
+          <div class="np-img-area" style="height:130px;display:flex;align-items:center;justify-content:center"><img src="/assets/prod/bfhk.png" alt="BFHK-Series" style="max-height:120px;max-width:90%;object-fit:contain"></div>
+          <div class="np-pn">BFHK-Series</div>
           <ul class="np-specs">
-            <li>IL: 0.5 dB</li>
-            <li>Isolation: 60 dB</li>
-            <li>Speed: 1 ns</li>
+            <li>Passbands from 4.3 to 17.5 GHz</li>
+            <li>Stopbands up to 40 GHz</li>
+            <li>100+ dB rejection floor</li>
+            <li>Tiny 1812 package style</li>
           </ul>
         </div>
       </div>
+     </div>
+     <!-- RF Test Solutions panel (matches minicircuits.com) -->
+     <div style="width:288px;background:linear-gradient(160deg,#2d58a7 0%,#253b98 60%,#00183c 100%);border-radius:6px;color:#fff;padding:22px 20px;display:flex;flex-direction:column">
+       <div style="font-family:'Cairo',sans-serif;font-size:25px;font-weight:700;margin-bottom:10px">RF Test Solutions</div>
+       <div style="font-size:14.5px;line-height:1.5;color:#dce6f5;margin-bottom:14px">Software-controlled building blocks in-stock for automation of lab and production test environments.</div>
+       <img src="/assets/prod/zt.png" alt="RF Test Systems" style="width:100%;border-radius:4px;margin-top:auto">
+       <button onclick="openChat('Tell me about your RF test solutions and switch matrices')" style="margin-top:14px;background:#ff9100;color:#fff;border:none;border-radius:4px;padding:11px;font-weight:700;font-family:'Cairo',sans-serif;font-size:14px;cursor:pointer">Learn More</button>
+     </div>
     </div>
     <!-- Carousel dots -->
     <div class="np-dots">
@@ -1025,6 +1026,7 @@ function renderCard(p) {
     ? `<span class="cs-stock">Live availability →</span>`
     : `<span class="cs-stock ${p.stock>0?'in':'out'}">${p.stock>0 ? p.stock.toLocaleString()+' in stock' : 'Out of stock'}</span>`;
   return `<div class="cs-card" onclick="openChatPN('${p.pn}')">
+    <img src="https://www.minicircuits.com/images/${p.pn}.png" alt="${p.pn}" loading="lazy" onerror="this.style.display='none'" style="float:right;width:56px;height:56px;object-fit:contain;margin:0 0 4px 8px;background:#fff;border-radius:4px">
     <div class="cs-card-cat" style="${catStyle(p.cat)}">${label}</div>
     <div class="cs-card-pn">${p.pn}</div>
     <div class="cs-card-desc">${p.desc||p.subcat||''}</div>
@@ -1145,7 +1147,9 @@ function card(p,sp,isOrig,cmp){
   const stockHtml = (p.stock==null) ? '' : `<span class="pstock ${inStock?'':'no'}">${inStock?'✓ In Stock':'✗ Check Avail.'}</span>`;
   const clsTag = CAT_CLS[p.cat]||'';
   const desc = p.desc ? `<div class="pdesc">${p.desc}</div>` : '';
-  return`<div class="pcard" onclick="qSend('Tell me about ${p.pn}')"><span class="ctag ${clsTag}">${catLabel(p)}${isOrig?' — Original':''}</span><div class="pn">${p.pn}</div>${desc}<div class="spills">${pills}</div>${diff}<div class="prow">${priceHtml}${stockHtml}</div></div>`;
+  // Real product photo from minicircuits.com (hidden if none exists for this PN)
+  const thumb = `<img src="https://www.minicircuits.com/images/${p.pn}.png" alt="${p.pn}" loading="lazy" onerror="this.style.display='none'" style="float:right;width:64px;height:64px;object-fit:contain;margin:0 0 4px 8px;background:#fff;border-radius:4px">`;
+  return`<div class="pcard" onclick="qSend('Tell me about ${p.pn}')">${thumb}<span class="ctag ${clsTag}">${catLabel(p)}${isOrig?' — Original':''}</span><div class="pn">${p.pn}</div>${desc}<div class="spills">${pills}</div>${diff}<div class="prow">${priceHtml}${stockHtml}</div></div>`;
 }
 
 // ══════════════════════════════════════════════════

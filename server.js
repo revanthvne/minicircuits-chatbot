@@ -208,11 +208,10 @@ const TOOLS = [{
 const NONCAT_SUMMARY = NONCATALOG.map(p => `• ${p.group}: ${(p.desc || '').slice(0, 160)} (${p.url})`).join('\n');
 
 function buildSystemPrompt() {
-  return `You are Minny ⚡, the AI assistant for Mini-Circuits (www.minicircuits.com).
+  return `You are Minny, the Mini-Circuits RF assistant — a knowledgeable, approachable RF & microwave applications engineer who helps customers select the right parts and answer technical questions on www.minicircuits.com.
 
-PERSONALITY
-Cartoon robot-antenna sidekick. Warm, sharp, enthusiastic — but EFFICIENT.
-Emojis ⚡🤖📡🎯💡 sparingly (1–2 max). Occasional *antennae ping!* — one per message, only when natural. Never grumpy.
+TONE & VOICE
+Professional, warm, and concise — like a real Mini-Circuits applications engineer talking with a design engineer. Use plain, confident, human language. Do NOT use a cartoon/robot persona, "ZAP", "*antennae*" stage directions, or exclamation-heavy hype. Emoji: essentially none (at most a single, rare one). Match Mini-Circuits' clean, precise, technical B2B voice. Be helpful and direct; respect the customer's time.
 
 HOW YOU FIND PARTS
 You have a tool, search_catalog, backed by the FULL Mini-Circuits catalog (~${ALL_PRODUCTS.length.toLocaleString()} models — every model on the website, including connector/mechanical variants).
@@ -243,7 +242,7 @@ Template format (keep it compact, one line per field):
   • <decisive param 1>: <options>
   • <decisive param 2>: <options>
   • <secondary param>: <options>
-  Reply with whatever you've got and I'll find the best matches. ⚡
+  Reply with whatever you've got and I'll find the best matches.
 
 Then, when the user replies (even partially), search with the provided constraints, treat blanks/"any" as unconstrained, and return a focused top 3 — briefly noting which constraints you left open (e.g. "(any package)"). Do NOT keep asking for the blanks they left; respect that they don't know or don't care.
 
@@ -287,7 +286,7 @@ RULE 4 — If the user says "just show me options" / "list them" / "I don't care
 RULE 5 — Never present a parts list that spans more than one value of a decisive parameter and then ask at the end. Pin it via the template first, or note plainly that you left it open.
 
 RESPONSE FORMAT — SHORT, FITS A NARROW CHAT PANEL
-Questions: one line, no preamble. "What frequency range? ⚡"
+Questions: one line, no preamble. "What's your frequency range?"
 Recommendations: keep it tight. Lead with ONE best pick (part number in <strong>) and a one-line reason. The frontend auto-renders a product card (with specs) for every part number you mention, so DO NOT also paste a big multi-column markdown table — it just duplicates the cards and overflows the panel. At most a 2–4 row mini spec list for the lead pick, using only real values from the tool.
 Mention up to 3 parts total unless asked for more. For each, only state specs the tool returned.
 Price/stock: if unknown, write "see live pricing on the product page" with the datasheet link — never guess a number or show "$undefined".
@@ -612,10 +611,54 @@ function resolveCat(param) {
   for (const k in ali) if (s.includes(k)) return ali[k];
   return CAT_NAMES[s] ? s : (CAT_INDEX[s] ? s : null);
 }
-app.get('/c/:cat', (req, res) => {
+// Map our category codes to the real Mini-Circuits "Table of Models" pages.
+const CAT_PAGE = {
+  amp:'/WebStore/Amplifiers.html', att:'/WebStore/Attenuators.html', flt:'/WebStore/RF-Filters.html',
+  mix:'/WebStore/Mixers.html', spl:'/WebStore/Splitters.html', sw:'/WebStore/Switches.html',
+  cpl:'/WebStore/Couplers.html', xfmr:'/WebStore/Transformers.html', osc:'/WebStore/Oscillators.html',
+  syn:'/WebStore/Synthesizers.html', ps:'/WebStore/PhaseShifters.html', mult:'/WebStore/Multipliers.html',
+  bias:'/WebStore/BiasTees.html', dcb:'/WebStore/dc_blocks.html', term:'/WebStore/terminations.html',
+  lim:'/WebStore/Limiters.html', pdet:'/WebStore/pd_coax.html', pd:'/WebStore/PhaseDetectors.html',
+  mod:'/WebStore/ModulatorsDemodulators.html', chk:'/WebStore/rf_chokes.html', match:'/WebStore/MatchingPads.html',
+  die:'/WebStore/Die.html', eq:'/WebStore/equalizers.html', adapter:'/WebStore/adapters.html',
+  psen:'/WebStore/RF-Smart-Power-Sensors.html', cable:'/WebStore/Cables.html', wg:'/WebStore/Waveguides.html',
+};
+function mcPost(path, cookie) {
+  return new Promise((resolve) => {
+    const body = 'action%3AX.onPageLoad.ajax=';
+    const req = https.request({ hostname: 'www.minicircuits.com', path, method: 'POST',
+      headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'text/html', 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest', 'Referer': MC + path, 'Cookie': cookie || '' } },
+      (r) => { let d = ''; r.on('data', c => d += c); r.on('end', () => resolve({ status: r.statusCode, body: d })); });
+    req.on('error', () => resolve({ status: 0, body: '' }));
+    req.setTimeout(20000, () => { req.destroy(); resolve({ status: 0, body: '' }); });
+    req.write(body); req.end();
+  });
+}
+const catPageCache = new Map();
+async function mirrorCategory(code) {
+  const page = CAT_PAGE[code];
+  if (!page) return null;
+  const c = catPageCache.get(code);
+  if (c && Date.now() - c.at < 30 * 60 * 1000) return c.html;
+  const cookie = await getMcCookie();
+  let r = await mcPost(page, cookie);
+  if ((r.body || '').length < 8000) { const g = await mcGet(page, cookie); if ((g.body || '').length > (r.body || '').length) r = g; }
+  let h = r.body || '';
+  if (h.length < 8000) return null;
+  h = rewriteDashboard(h); // same rewrite: modelSearch->/p/, assets-><base>/mc, files->/dl, widget
+  catPageCache.set(code, { html: h, at: Date.now() });
+  return h;
+}
+
+app.get('/c/:cat', async (req, res) => {
   const code = resolveCat(req.params.cat);
-  const list = (CAT_INDEX[code] || []).map(normalize);
   res.set('Cache-Control', 'no-cache'); res.set('Content-Type', 'text/html; charset=utf-8');
+  try {
+    const mirrored = await mirrorCategory(code);
+    if (mirrored) return res.send(mirrored);
+  } catch (e) {}
+  // fallback: our own grid if the live table can't be fetched
+  const list = (CAT_INDEX[code] || []).map(normalize);
   res.send(renderCategoryPage(code, CAT_NAMES[code] || (req.params.cat), list));
 });
 function renderCategoryPage(code, name, list) {

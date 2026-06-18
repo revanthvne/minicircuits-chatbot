@@ -10,7 +10,8 @@
   var ACCESS = sessionStorage.getItem('mc_ac') || '';
   var greeted = false, open = false;
 
-  var AV = '<svg viewBox="0 0 80 100" style="width:30px;height:36px;flex-shrink:0" xmlns="http://www.w3.org/2000/svg"><line x1="40" y1="1" x2="40" y2="17" stroke="#ff9100" stroke-width="2.5" stroke-linecap="round"/><circle cx="40" cy="1" r="3.5" fill="#ff9100"/><rect x="11" y="17" width="58" height="42" rx="13" fill="#1C2951"/><ellipse cx="28" cy="35" rx="6.5" ry="6.5" fill="#ff9100"/><ellipse cx="52" cy="35" rx="6.5" ry="6.5" fill="#ff9100"/><ellipse cx="28" cy="35" rx="3.6" ry="3.6" fill="#fff"/><ellipse cx="52" cy="35" rx="3.6" ry="3.6" fill="#fff"/><path d="M 23 47 Q 40 57 57 47" stroke="#ff9100" stroke-width="2.5" fill="none" stroke-linecap="round"/><rect x="11" y="60" width="58" height="36" rx="11" fill="#1C2951"/><rect x="20" y="65" width="40" height="24" rx="5" fill="#0A1220"/><text x="25" y="81" fill="#ff9100" font-size="12" font-weight="900" font-family="Arial">MC</text></svg>';
+  // Professional "applications engineer" avatar (head + headset), Mini-Circuits palette.
+  var AV = '<svg viewBox="0 0 64 64" style="width:34px;height:34px;flex-shrink:0" xmlns="http://www.w3.org/2000/svg"><circle cx="32" cy="32" r="32" fill="#0b2b66"/><circle cx="32" cy="27" r="8.5" fill="#fff"/><path d="M17 49c0-8.5 6.8-13 15-13s15 4.5 15 13z" fill="#fff"/><path d="M20 30a12 12 0 0124 0" fill="none" stroke="#ff9100" stroke-width="3" stroke-linecap="round"/><rect x="16.5" y="29" width="5.5" height="10" rx="2.7" fill="#ff9100"/><rect x="42" y="29" width="5.5" height="10" rx="2.7" fill="#ff9100"/></svg>';
 
   var css = '\
   #minny-fab{position:fixed;right:22px;bottom:22px;width:62px;height:62px;border-radius:50%;background:linear-gradient(135deg,#253b98,#00183c);box-shadow:0 6px 20px rgba(0,0,0,.3);cursor:pointer;z-index:2147483000;display:flex;align-items:center;justify-content:center;border:3px solid #fff}\
@@ -52,7 +53,7 @@
 
   var panel = document.createElement('div'); panel.id = 'minny-panel';
   panel.innerHTML =
-    '<div id="minny-hd">' + AV + '<div><div class="t">Minny ⚡</div><div class="s">Mini-Circuits RF assistant — online</div></div><button class="x" title="Close">✕</button></div>' +
+    '<div id="minny-hd">' + AV + '<div><div class="t">Minny</div><div class="s">Mini-Circuits RF Assistant · online</div></div><button class="x" title="Close">✕</button></div>' +
     '<div id="minny-msgs"></div>' +
     '<div id="minny-foot"><textarea id="minny-in" rows="1" placeholder="Ask me anything RF! ⚡"></textarea><button id="minny-send">➤</button></div>';
   document.body.appendChild(panel);
@@ -113,8 +114,8 @@
   window.__minnySend=function(m){ openPanel(); send(m); };
 
   function greet(){ if(greeted)return; greeted=true;
-    row('Hey! ⚡🤖 I\'m <strong>Minny</strong>, your Mini-Circuits RF assistant. Tell me what you\'re building and I\'ll find the exact part — specs, live pricing, stock and datasheets.',false);
-    chips(['Find me an LNA for 2.4 GHz','Balun, 5–1800 MHz','Cascade NF calc','VSWR 1.5 → RL']);
+    row('Hi, I\'m <strong>Minny</strong>, your Mini-Circuits RF assistant. Tell me your application or target specs and I\'ll help you find the right part — with specifications, live pricing, stock, and datasheets.',false);
+    chips(['LNA for 2.4 GHz, NF < 1.5 dB','Balun, 5–1800 MHz','Cascade noise figure','VSWR 1.5 → return loss']);
   }
   function openPanel(){ open=true; panel.classList.add('open'); fab.querySelector('.b').style.display='none'; greet(); setTimeout(function(){input.focus();},50); }
   function closePanel(){ open=false; panel.classList.remove('open'); }

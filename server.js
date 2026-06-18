@@ -509,14 +509,57 @@ app.get('/dl', (req, res) => {
   }
 });
 
-// ── Product page — a real dashboard page hosted on OUR domain ────────────────
+// ── Product page — mirror the REAL dashboard (exact icons/fonts/layout) but
+//    rewrite links so products stay on our domain and files stream via /dl. ──
+const MC = 'https://www.minicircuits.com';
+const dashCache = new Map();
+async function mirrorDashboard(pn) {
+  const c = dashCache.get(pn);
+  if (c && Date.now() - c.at < 30 * 60 * 1000) return c.html;
+  let cookie = await getMcCookie();
+  let r = await mcGet('/WebStore/dashboard.html?model=' + encodeURIComponent(pn), cookie);
+  if ((r.body || '').length < 3000) { mcCookie = null; cookie = await getMcCookie(); r = await mcGet('/WebStore/dashboard.html?model=' + encodeURIComponent(pn), cookie); }
+  let h = r.body || '';
+  if (h.length < 3000) return null;
+  h = rewriteDashboard(h);
+  dashCache.set(pn, { html: h, at: Date.now() });
+  return h;
+}
+function rewriteDashboard(h) {
+  // A) product links -> our /p/  (keep before generic .html rewrite)
+  h = h.replace(/(href|action)\s*=\s*"(?:\.\.\/|\/)?WebStore\/(?:dashboard|modelSearch)\.html\?model=([^"&]+)[^"]*"/gi, (m, a, enc) => `${a}="/p/${enc}"`);
+  // B) downloadable files -> /dl proxy (served from our domain)
+  h = h.replace(/href\s*=\s*"((?:https?:\/\/[^"]*minicircuits\.com)?(?:\.\.\/|\/)?(?:pdfs|pages\/s-params|case_style|pcb)\/[^"]+)"/gi, (m, p) => {
+    let abs = p.startsWith('http') ? p : MC + '/' + p.replace(/^(?:\.\.\/|\/)+/, '');
+    return 'href="/dl?u=' + encodeURIComponent(abs) + '" target="_blank"';
+  });
+  // C) make all assets (css/js/img/fonts/icons) load from minicircuits.com
+  h = h.replace(/(src|href)\s*=\s*"((?:\.\.\/)+)([^"]+)"/gi, (m, a, dots, rest) => `${a}="${MC}/${rest}"`);
+  h = h.replace(/(src|href)\s*=\s*"(css|js|images|font_awesome|Scripts|fonts|x2cms|webfonts)\/([^"]+)"/gi, (m, a, dir, rest) => `${a}="${MC}/${dir}/${rest}"`);
+  h = h.replace(/(src|href)\s*=\s*"\/((?!\/)[^"]*\.(?:css|js|png|jpe?g|gif|svg|woff2?|ttf|eot|ico|webp)(?:\?[^"]*)?)"/gi, (m, a, rest) => `${a}="${MC}/${rest}"`);
+  h = h.replace(/url\((['"]?)(?:\.\.\/|\/)([^)'"]+)\1\)/gi, (m, q, rest) => `url(${q}${MC}/${rest}${q})`);
+  // D) neutralize remaining page navigation (relative/MC .html pages) -> our home
+  h = h.replace(/href\s*=\s*"(?!\/p\/|\/dl\?|#|mailto:|javascript:|https?:\/\/(?:fonts\.|js\.|track\.|px\.|www\.google|i0\.wp|blog\.))(?:https?:\/\/[^"]*minicircuits\.com)?(?:\.\.\/|\/)?[^"]*\.html[^"]*"/gi, 'href="/"');
+  // E) don't let the Buy form post to their store
+  h = h.replace(/<form([^>]*?)\saction\s*=\s*"[^"]*"/gi, '<form$1 action="javascript:void(0)"');
+  // F) inject our chat widget (root-relative -> our origin; no <base> on this page)
+  const inject = '\n<script src="/minny-widget.js"></script>\n';
+  h = /<\/body>/i.test(h) ? h.replace(/<\/body>/i, inject + '</body>') : h + inject;
+  return h;
+}
+
 app.get('/p/:pn', requirePasscode2, async (req, res) => {
   const pn = req.params.pn;
+  res.set('Cache-Control', 'no-cache');
+  res.set('Content-Type', 'text/html; charset=utf-8');
+  try {
+    const mirrored = await mirrorDashboard(pn);
+    if (mirrored) return res.send(mirrored);
+  } catch (e) {}
+  // fallback: our own dashboard-style template if the live page can't be fetched
   let det = {}; try { det = await getProductDetails(pn); } catch (e) {}
   const rec = ALL_PRODUCTS.find(p => p.pn === pn);
   const n = rec ? normalize(rec) : { pn };
-  res.set('Cache-Control', 'no-cache');
-  res.set('Content-Type', 'text/html; charset=utf-8');
   res.send(renderProductPage(pn, n, det));
 });
 // product pages are public to browse (no chat cost); keep them open

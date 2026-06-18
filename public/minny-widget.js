@@ -10,8 +10,19 @@
   var ACCESS = sessionStorage.getItem('mc_ac') || '';
   var greeted = false, open = false;
 
-  // Professional "applications engineer" avatar (head + headset), Mini-Circuits palette.
-  var AV = '<svg viewBox="0 0 64 64" style="width:34px;height:34px;flex-shrink:0" xmlns="http://www.w3.org/2000/svg"><circle cx="32" cy="32" r="32" fill="#0b2b66"/><circle cx="32" cy="27" r="8.5" fill="#fff"/><path d="M17 49c0-8.5 6.8-13 15-13s15 4.5 15 13z" fill="#fff"/><path d="M20 30a12 12 0 0124 0" fill="none" stroke="#ff9100" stroke-width="3" stroke-linecap="round"/><rect x="16.5" y="29" width="5.5" height="10" rx="2.7" fill="#ff9100"/><rect x="42" y="29" width="5.5" height="10" rx="2.7" fill="#ff9100"/></svg>';
+  // Minny — a friendly Mini-Circuits chip mascot: smiling, waving, gently dancing.
+  var AV = '<svg viewBox="0 0 64 64" style="width:36px;height:36px;flex-shrink:0" xmlns="http://www.w3.org/2000/svg">'
+   + '<style>.mcb{animation:mcbob 1.5s ease-in-out infinite;transform-origin:32px 42px}.mca{animation:mcwv 1.2s ease-in-out infinite;transform-origin:17px 31px}@keyframes mcbob{0%,100%{transform:translateY(0) rotate(-3deg)}50%{transform:translateY(-2px) rotate(3deg)}}@keyframes mcwv{0%,100%{transform:rotate(4deg)}50%{transform:rotate(-28deg)}}@media(prefers-reduced-motion:reduce){.mcb,.mca{animation:none}}</style>'
+   + '<circle cx="32" cy="32" r="32" fill="#eaf1fb"/>'
+   + '<g class="mcb">'
+   + '<g fill="#ff9100"><rect x="20" y="45" width="3" height="6" rx="1"/><rect x="26.5" y="45" width="3" height="6" rx="1"/><rect x="33" y="45" width="3" height="6" rx="1"/><rect x="39.5" y="45" width="3" height="6" rx="1"/></g>'
+   + '<rect x="17" y="16" width="30" height="30" rx="6" fill="#253b98"/><rect x="24" y="11" width="16" height="6" rx="2" fill="#1c2f86"/>'
+   + '<rect x="21" y="21" width="22" height="16" rx="3" fill="#0b1530"/>'
+   + '<circle cx="28" cy="28" r="2.6" fill="#fff"/><circle cx="36" cy="28" r="2.6" fill="#fff"/><circle cx="28.7" cy="28.4" r="1.1" fill="#0b1530"/><circle cx="36.7" cy="28.4" r="1.1" fill="#0b1530"/>'
+   + '<path d="M27 32.5 Q32 37 37 32.5" stroke="#ff9100" stroke-width="2" fill="none" stroke-linecap="round"/>'
+   + '<g class="mca"><path d="M17 31 q-8 -1 -11 -8" stroke="#253b98" stroke-width="3" fill="none" stroke-linecap="round"/><circle cx="5.5" cy="22" r="2.6" fill="#ff9100"/></g>'
+   + '<path d="M47 33 q8 0 11 5" stroke="#253b98" stroke-width="3" fill="none" stroke-linecap="round"/><circle cx="58.5" cy="38" r="2.6" fill="#ff9100"/>'
+   + '</g></svg>';
 
   var css = '\
   #minny-fab{position:fixed;right:22px;bottom:22px;width:62px;height:62px;border-radius:50%;background:linear-gradient(135deg,#253b98,#00183c);box-shadow:0 6px 20px rgba(0,0,0,.3);cursor:pointer;z-index:2147483000;display:flex;align-items:center;justify-content:center;border:3px solid #fff}\

@@ -567,11 +567,44 @@ function rewriteDashboard(h) {
   // F) <base> so ALL relative assets (images/, ../css/, js/) resolve through the
   //    /mc proxy at the correct /WebStore/-relative path → exact icons, fonts, layout.
   h = h.replace(/<head([^>]*)>/i, (m) => m + '\n<base href="/mc/WebStore/">');
-  // G) inject our chat widget (root-relative -> our origin, not affected by <base>)
-  const inject = '\n<script src="/minny-widget.js"></script>\n';
+  // G) inject (1) a filter enhancer that neutralizes the broken cross-origin
+  //    "Network Error" AJAX and adds working client-side filtering, and (2) our widget.
+  const inject = '\n' + CATEGORY_ENHANCER + '\n<script src="/minny-widget.js"></script>\n';
   h = /<\/body>/i.test(h) ? h.replace(/<\/body>/i, inject + '</body>') : h + inject;
   return h;
 }
+const CATEGORY_ENHANCER = `<script>(function(){try{
+  var _alert=window.alert;window.alert=function(m){if(/network error/i.test(String(m||'')))return;try{return _alert.apply(window,arguments)}catch(e){}};
+  var _open=XMLHttpRequest.prototype.open;XMLHttpRequest.prototype.open=function(method,url){try{if(typeof url==='string'&&/IBehaviorListener|onPageLoad|wicket|\\\\?.*random=|\\\\.html\\\\?/i.test(url))this.__blk=true;}catch(e){}return _open.apply(this,arguments);};
+  var _send=XMLHttpRequest.prototype.send;XMLHttpRequest.prototype.send=function(){if(this.__blk){return;}return _send.apply(this,arguments);};
+  function ready(fn){if(document.readyState!=='loading')fn();else document.addEventListener('DOMContentLoaded',fn);}
+  ready(function(){
+    var rows=[].slice.call(document.querySelectorAll('tr[name="data_row"], tr.data_rows'));
+    if(rows.length<2)return;
+    rows.forEach(function(r){r.__t=(r.innerText||'').toLowerCase();});
+    var table=rows[0].closest('table'); if(!table)return;
+    var heads=[].slice.call(table.querySelectorAll('th')).map(function(th){return (th.innerText||'').toLowerCase();});
+    function ci(re){for(var i=0;i<heads.length;i++)if(re.test(heads[i]))return i;return -1;}
+    var iLow=ci(/f\\s*low/),iHigh=ci(/f\\s*high/);
+    var bar=document.createElement('div');
+    bar.style.cssText='margin:14px 0;padding:12px 14px;background:#eef3fb;border:1px solid #d6deea;border-radius:6px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;font-family:Arial,sans-serif';
+    bar.innerHTML='<strong style="color:#0b2b66">Quick filter:</strong>'
+      +'<input id="mcq" placeholder="Part number or keyword…" style="flex:1;min-width:200px;padding:8px 12px;border:1.5px solid #b9c4d6;border-radius:6px;font-size:14px">'
+      +'<input id="mclo" type="number" placeholder="Freq min (MHz)" style="width:140px;padding:8px;border:1.5px solid #b9c4d6;border-radius:6px">'
+      +'<input id="mchi" type="number" placeholder="Freq max (MHz)" style="width:140px;padding:8px;border:1.5px solid #b9c4d6;border-radius:6px">'
+      +'<span id="mcn" style="color:#5b6b85;font-size:13px"></span>';
+    table.parentNode.insertBefore(bar,table);
+    function num(v){var n=parseFloat(String(v).replace(/[^0-9.\\-]/g,''));return isNaN(n)?null:n;}
+    var q=bar.querySelector('#mcq'),lo=bar.querySelector('#mclo'),hi=bar.querySelector('#mchi'),cn=bar.querySelector('#mcn');
+    function apply(){var t=q.value.toLowerCase().trim(),L=num(lo.value),H=num(hi.value),s=0;
+      rows.forEach(function(r){var ok=true;if(t&&r.__t.indexOf(t)<0)ok=false;
+        if(ok&&(L!=null||H!=null)&&iLow>=0&&iHigh>=0){var c=r.querySelectorAll('td');var rl=num(c[iLow]&&c[iLow].innerText),rh=num(c[iHigh]&&c[iHigh].innerText);
+          if(rl!=null&&rh!=null){if(L!=null&&rh<L)ok=false;if(H!=null&&rl>H)ok=false;}}
+        r.style.display=ok?'':'none';if(ok)s++;});
+      cn.textContent=s+' of '+rows.length+' shown';}
+    q.addEventListener('input',apply);lo.addEventListener('input',apply);hi.addEventListener('input',apply);apply();
+  });
+}catch(e){}})();</script>`;
 
 app.get('/p/:pn', requirePasscode2, async (req, res) => {
   const pn = req.params.pn;

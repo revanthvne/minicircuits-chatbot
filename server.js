@@ -583,7 +583,9 @@ const CATEGORY_ENHANCER = `<script>(function(){try{
     if(rows.length<2)return;
     rows.forEach(function(r){r.__t=(r.innerText||'').toLowerCase();});
     var table=rows[0].closest('table'); if(!table)return;
-    var heads=[].slice.call(table.querySelectorAll('th')).map(function(th){return (th.innerText||'').toLowerCase();});
+    var hrow=null,allTr=[].slice.call(table.querySelectorAll('tr'));
+    for(var hk=0;hk<allTr.length&&!hrow;hk++){var hc=allTr[hk].children;for(var hj=0;hj<hc.length;hj++){if(/^\\s*model\\s*number/i.test(hc[hj].innerText||'')){hrow=allTr[hk];break;}}}
+    var heads=hrow?[].slice.call(hrow.children).map(function(h){return (h.innerText||'').toLowerCase();}):[];
     function ci(re){for(var i=0;i<heads.length;i++)if(re.test(heads[i]))return i;return -1;}
     var iLow=ci(/f\\s*low/),iHigh=ci(/f\\s*high/);
     var bar=document.createElement('div');
@@ -594,7 +596,7 @@ const CATEGORY_ENHANCER = `<script>(function(){try{
       +'<input id="mchi" type="number" placeholder="Freq max (MHz)" style="width:140px;padding:8px;border:1.5px solid #b9c4d6;border-radius:6px">'
       +'<span id="mcn" style="color:#5b6b85;font-size:13px"></span>';
     table.parentNode.insertBefore(bar,table);
-    function num(v){var n=parseFloat(String(v).replace(/[^0-9.\\-]/g,''));return isNaN(n)?null:n;}
+    function num(v){var m=String(v==null?'':v).match(/-?\\d+(?:\\.\\d+)?/);return m?parseFloat(m[0]):null;}
     var q=bar.querySelector('#mcq'),lo=bar.querySelector('#mclo'),hi=bar.querySelector('#mchi'),cn=bar.querySelector('#mcn');
     function apply(){var t=q.value.toLowerCase().trim(),L=num(lo.value),H=num(hi.value),s=0;
       for(var i=0;i<rows.length;i++){var r=rows[i],ok=true;if(t&&r.__t.indexOf(t)<0)ok=false;

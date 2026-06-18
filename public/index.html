@@ -1026,7 +1026,7 @@ function renderCard(p) {
     ? `<span class="cs-stock">Live availability →</span>`
     : `<span class="cs-stock ${p.stock>0?'in':'out'}">${p.stock>0 ? p.stock.toLocaleString()+' in stock' : 'Out of stock'}</span>`;
   return `<div class="cs-card" onclick="openChatPN('${p.pn}')">
-    <img src="https://www.minicircuits.com/images/${p.pn}.png" alt="${p.pn}" loading="lazy" onerror="this.style.display='none'" style="float:right;width:56px;height:56px;object-fit:contain;margin:0 0 4px 8px;background:#fff;border-radius:4px">
+    <img src="/api/img?pn=${encodeURIComponent(p.pn)}&case=${encodeURIComponent(p.case_style||'')}" alt="${p.pn}" loading="lazy" onerror="this.style.display='none'" style="float:right;width:56px;height:56px;object-fit:contain;margin:0 0 4px 8px;background:#fff;border-radius:4px">
     <div class="cs-card-cat" style="${catStyle(p.cat)}">${label}</div>
     <div class="cs-card-pn">${p.pn}</div>
     <div class="cs-card-desc">${p.desc||p.subcat||''}</div>
@@ -1148,7 +1148,7 @@ function card(p,sp,isOrig,cmp){
   const clsTag = CAT_CLS[p.cat]||'';
   const desc = p.desc ? `<div class="pdesc">${p.desc}</div>` : '';
   // Real product photo from minicircuits.com (hidden if none exists for this PN)
-  const thumb = `<img src="https://www.minicircuits.com/images/${p.pn}.png" alt="${p.pn}" loading="lazy" onerror="this.style.display='none'" style="float:right;width:64px;height:64px;object-fit:contain;margin:0 0 4px 8px;background:#fff;border-radius:4px">`;
+  const thumb = `<img src="/api/img?pn=${encodeURIComponent(p.pn)}&case=${encodeURIComponent(p.case_style||'')}" alt="${p.pn}" loading="lazy" onerror="this.style.display='none'" style="float:right;width:64px;height:64px;object-fit:contain;margin:0 0 4px 8px;background:#fff;border-radius:4px">`;
   return`<div class="pcard" onclick="qSend('Tell me about ${p.pn}')">${thumb}<span class="ctag ${clsTag}">${catLabel(p)}${isOrig?' — Original':''}</span><div class="pn">${p.pn}</div>${desc}<div class="spills">${pills}</div>${diff}<div class="prow">${priceHtml}${stockHtml}</div></div>`;
 }
 

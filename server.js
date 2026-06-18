@@ -10,6 +10,7 @@
  * Start: node server.js
  */
 require('dotenv').config();
+const https      = require('https');
 const express    = require('express');
 const path       = require('path');
 const Anthropic  = require('@anthropic-ai/sdk');
@@ -365,6 +366,46 @@ app.get('/api/search', (req, res) => {
   ['freq_mhz', 'max_nf', 'min_gain', 'max_price', 'limit'].forEach(k => { if (args[k] != null) args[k] = parseFloat(args[k]); });
   if (args.in_stock != null) args.in_stock = args.in_stock === 'true' || args.in_stock === '1';
   res.json(searchCatalog(args));
+});
+
+// ── Product image proxy ──────────────────────────────────────────────────────
+// Mini-Circuits blocks cross-origin hotlinking and keys most product photos by
+// case style, not part number. This proxy fetches the real image server-side
+// (with a valid referer), trying the known path variants, and caches results so
+// product cards can show the same photos as minicircuits.com.
+const imgCache = new Map();
+function fetchMcImage(p) {
+  return new Promise((resolve) => {
+    const req = https.get({
+      hostname: 'www.minicircuits.com', path: encodeURI(p),
+      headers: { 'User-Agent': 'Mozilla/5.0', 'Referer': 'https://www.minicircuits.com/', 'Accept': 'image/*' },
+    }, (r) => {
+      if (r.statusCode !== 200 || !/image\//.test(r.headers['content-type'] || '')) { r.resume(); return resolve(null); }
+      const ch = []; r.on('data', c => ch.push(c)); r.on('end', () => resolve({ buf: Buffer.concat(ch), type: r.headers['content-type'] }));
+    });
+    req.on('error', () => resolve(null));
+    req.setTimeout(8000, () => { req.destroy(); resolve(null); });
+  });
+}
+app.get('/api/img', async (req, res) => {
+  const pn = String(req.query.pn || '').trim();
+  const cs = String(req.query.case || '').trim();
+  if (!pn) return res.status(400).end();
+  const key = pn + '|' + cs;
+  if (imgCache.has(key)) {
+    const c = imgCache.get(key);
+    if (!c) return res.status(404).end();
+    res.set('Content-Type', c.type); res.set('Cache-Control', 'public, max-age=604800');
+    return res.end(c.buf);
+  }
+  const candidates = [`/images/${pn}.png`];
+  if (cs) candidates.push(`/images/case_style/${cs}.png`, `/images/model/${cs}_HS.png`, `/images/case_style/${cs}_HS.png`);
+  for (const path of candidates) {
+    const img = await fetchMcImage(path);
+    if (img) { imgCache.set(key, img); res.set('Content-Type', img.type); res.set('Cache-Control', 'public, max-age=604800'); return res.end(img.buf); }
+  }
+  imgCache.set(key, null);
+  res.status(404).end();
 });
 
 // ── Main chat endpoint (Claude tool-use loop) ────────────────────────────────

@@ -458,8 +458,8 @@ async function getProductDetails(pn) {
   const html = r.body || '';
   const data = { pn, found: html.length > 2000, url: `/p/${encodeURIComponent(pn)}` };
   const tm = html.match(/<title>([^<|]+)/); if (tm) data.title = tm[1].trim();
-  const tiers = [...html.matchAll(/<td class="td_length">\s*([\d,]+)\s*<\/td>\s*<td class="td_length2">\s*(?:&#36;|\$)?\s*([\d.]+)\s*<\/td>/g)]
-    .map(m => ({ qty: parseInt(m[1].replace(/,/g, ''), 10), price: parseFloat(m[2]) }));
+  const tiers = [...html.matchAll(/<td class="td_length">\s*([\s\S]*?)\s*<\/td>\s*<td class="td_length2">\s*(?:&#36;|\$)?\s*([\d.]+)\s*<\/td>/g)]
+    .map(m => { const q = m[1].replace(/<[^>]+>/g, '').replace(/&[a-z#0-9]+;/g, ' ').replace(/\s+/g, ' ').trim(); const num = parseInt(q.replace(/,/g, ''), 10); return { qty: isNaN(num) ? q : num, price: parseFloat(m[2]) }; });
   if (tiers.length) data.price_tiers = tiers;
   const sm = html.match(/<span[^>]*class="[^"]*current_stock_number[^"]*"[^>]*>([^<]*)<\/span>/i);
   if (sm) { const v = sm[1].replace(/&[a-z#0-9]+;/g, ' ').replace(/\s+/g, ' ').trim(); if (v) data.stock = v; }

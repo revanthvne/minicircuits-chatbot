@@ -589,7 +589,7 @@ h1{font-size:30px;color:#0b1a3a;margin-bottom:4px}.cnt{color:#5b6b85;margin-bott
 
 function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 function renderProductPage(pn, n, det) {
-  const title = det.title ? det.title.replace(/\s*\|\s*Mini-Circuits.*$/i, '').replace(/^[^|]*\|\s*/, '') : (n.desc || pn);
+  const title = n.desc || (det.title ? det.title.split('|')[0].trim() : pn);
   const group = n.group || 'Products';
   // Icons (inline SVG) keyed by file label, matching the real dashboard.
   const ic = {

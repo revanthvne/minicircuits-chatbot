@@ -548,22 +548,23 @@ async function mirrorDashboard(pn) {
   return h;
 }
 function rewriteDashboard(h) {
-  // A) product links -> our /p/
-  h = h.replace(/(href|action)\s*=\s*"(?:\.\.\/|\/)?WebStore\/(?:dashboard|modelSearch)\.html\?model=([^"&]+)[^"]*"/gi, (m, a, enc) => `${a}="/p/${enc}"`);
-  // B) downloadable files -> /dl proxy
+  // A) product links -> our /p/  (root-relative, so unaffected by <base>)
+  h = h.replace(/(href|action)\s*=\s*"(?:https?:\/\/[^"]*minicircuits\.com)?(?:\.\.\/|\/)?WebStore\/(?:dashboard|modelSearch)\.html\?model=([^"&]+)[^"]*"/gi, (m, a, enc) => `${a}="/p/${enc}"`);
+  // B) downloadable files -> /dl proxy (served from our domain)
   h = h.replace(/href\s*=\s*"((?:https?:\/\/[^"]*minicircuits\.com)?(?:\.\.\/|\/)?(?:pdfs|pages\/s-params|case_style|pcb)\/[^"]+)"/gi, (m, p) => {
     let abs = p.startsWith('http') ? p : MC + '/' + p.replace(/^(?:\.\.\/|\/)+/, '');
     return 'href="/dl?u=' + encodeURIComponent(abs) + '" target="_blank"';
   });
-  // C) neutralize remaining page navigation (.html pages, relative or MC) -> our home
+  // C) absolute minicircuits.com asset URLs -> our same-origin /mc proxy
+  h = h.replace(/(src|href)\s*=\s*"https?:\/\/(?:www\.)?minicircuits\.com\/([^"]+\.(?:css|js|png|jpe?g|gif|svg|woff2?|ttf|eot|ico|webp)(?:\?[^"]*)?)"/gi, (m, a, rest) => `${a}="/mc/${rest}"`);
+  // D) neutralize remaining page navigation (.html pages) -> our home
   h = h.replace(/href\s*=\s*"(?!\/p\/|\/dl\?|\/mc\/|#|mailto:|javascript:|https?:\/\/(?:fonts\.|js\.|track\.|px\.|www\.google|i0\.wp|blog\.))(?:https?:\/\/[^"]*minicircuits\.com)?(?:\.\.\/|\/)?[^"]*\.html[^"]*"/gi, 'href="/"');
-  // D) route ALL assets (css/js/img/fonts/icons) through OUR /mc proxy so they
-  //    load same-origin (avoids cross-origin font/CORS blocking → exact icons & fonts).
-  h = h.replace(/(src|href)\s*=\s*"(?:https?:\/\/(?:www\.)?minicircuits\.com)?\/?(?:\.\.\/)*([A-Za-z0-9_][^"]*\.(?:css|js|png|jpe?g|gif|svg|woff2?|ttf|eot|ico|webp)(?:\?[^"]*)?)"/gi, (m, a, rest) => `${a}="/mc/${rest}"`);
-  h = h.replace(/url\((['"]?)(?:https?:\/\/(?:www\.)?minicircuits\.com)?\/?(?:\.\.\/)*([^)'"]+)\1\)/gi, (m, q, rest) => `url(${q}/mc/${rest}${q})`);
   // E) don't let the Buy form post to their store
   h = h.replace(/<form([^>]*?)\saction\s*=\s*"[^"]*"/gi, '<form$1 action="javascript:void(0)"');
-  // F) inject our chat widget
+  // F) <base> so ALL relative assets (images/, ../css/, js/) resolve through the
+  //    /mc proxy at the correct /WebStore/-relative path → exact icons, fonts, layout.
+  h = h.replace(/<head([^>]*)>/i, (m) => m + '\n<base href="/mc/WebStore/">');
+  // G) inject our chat widget (root-relative -> our origin, not affected by <base>)
   const inject = '\n<script src="/minny-widget.js"></script>\n';
   h = /<\/body>/i.test(h) ? h.replace(/<\/body>/i, inject + '</body>') : h + inject;
   return h;

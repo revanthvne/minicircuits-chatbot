@@ -589,61 +589,93 @@ h1{font-size:30px;color:#0b1a3a;margin-bottom:4px}.cnt{color:#5b6b85;margin-bott
 
 function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 function renderProductPage(pn, n, det) {
-  const title = det.title ? det.title.replace(/\s*\|\s*Mini-Circuits.*$/i, '') : (n.desc || pn);
-  const group = n.group || '';
-  const specRows = [];
-  const add = (k, v) => { if (v != null && v !== '') specRows.push('<tr><td class="k">' + esc(k) + '</td><td>' + esc(v) + '</td></tr>'); };
-  add('Category', group);
-  if (n.flo != null && n.fhi != null) add('Frequency', n.flo + ' – ' + n.fhi + ' MHz');
-  add('Gain', n.gain != null ? n.gain + ' dB' : '');
-  add('Noise Figure', n.nf != null ? n.nf + ' dB' : '');
-  add('P1dB', n.p1o != null ? n.p1o + ' dBm' : '');
-  add('Insertion Loss', n.il != null ? n.il + ' dB' : '');
-  add('Isolation', n.iso != null ? n.iso + ' dB' : '');
-  add('Impedance', n.impedance != null ? (n.impedance + 'Ω' + (n.impedance_ratio ? (' (ratio ' + n.impedance_ratio + ':1)') : '')) : '');
-  add('Case Style', n.case_style);
-  const tiers = (det.price_tiers || []).map(t => '<tr><td>' + esc(t.qty) + '</td><td>$' + esc(t.price) + '</td></tr>').join('');
-  const files = (det.files || []).map(f => '<a class="file" href="' + esc(f.href) + '" target="_blank" rel="noopener">📄 ' + esc(f.label) + '</a>').join('');
-  const img = '<img src="/api/img?pn=' + encodeURIComponent(pn) + '&case=' + encodeURIComponent(n.case_style || '') + '" onerror="this.style.display=\'none\'" style="max-width:230px;max-height:200px;object-fit:contain">';
+  const title = det.title ? det.title.replace(/\s*\|\s*Mini-Circuits.*$/i, '').replace(/^[^|]*\|\s*/, '') : (n.desc || pn);
+  const group = n.group || 'Products';
+  // Icons (inline SVG) keyed by file label, matching the real dashboard.
+  const ic = {
+    datasheet:'📄', data:'▦', graphs:'📈', sparam:'〽', case:'▣', tr:'▤', pcb:'⊞', eval:'🔬', gerber:'🗎', env:'🌡', file:'📄',
+  };
+  const iconFor = (label) => {
+    const l = label.toLowerCase();
+    if (l.includes('datasheet')) return ic.datasheet;
+    if (l.includes('view data')) return ic.data;
+    if (l.includes('graph')) return ic.graphs;
+    if (l.includes('s-param')||l.includes('parameter')) return ic.sparam;
+    if (l.includes('case')) return ic.case;
+    if (l.includes('t & r')||l.includes('tape')) return ic.tr;
+    if (l.includes('pcb')) return ic.pcb;
+    if (l.includes('eval')) return ic.eval;
+    if (l.includes('gerber')) return ic.gerber;
+    if (l.includes('environ')) return ic.env;
+    return ic.file;
+  };
+  const files = (det.files || []).map(f =>
+    `<a class="dl" href="${esc(f.href)}" target="_blank" rel="noopener"><span class="ico">${iconFor(f.label)}</span> ${esc(f.label)}</a>`).join('');
+  const addl = ['Export Info','RoHS','General Technical Notes','Application Notes','PCN History','Tools','Upscreening Services','Contact Us']
+    .map(t => `<a class="ai" onclick="window.__minnySend && window.__minnySend('${esc(t)} for ${esc(pn)}');return false;" href="#">▸ ${esc(t)}</a>`).join('');
+  const tiers = (det.price_tiers || []).map((t, i) =>
+    `<tr class="${i % 2 ? 'alt' : ''}"><td>${esc(t.qty)}</td><td>$${esc(t.price)}</td></tr>`).join('');
+  const img = `<img src="/api/img?pn=${encodeURIComponent(pn)}&case=${encodeURIComponent(n.case_style || '')}" onerror="this.style.display='none'" style="max-width:250px;max-height:210px;object-fit:contain">`;
   return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${esc(pn)} | ${esc(title)} | Mini-Circuits</title>
+<title>${esc(title)} | ${esc(pn)} | Mini-Circuits</title>
 <link rel="icon" href="/assets/favicon.ico">
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Roboto+Condensed:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}body{font-family:'Roboto Condensed',Arial,sans-serif;color:#1a2332;background:#fff}
-a{color:#253b98;text-decoration:none}h1,h2,h3{font-family:'Cairo',sans-serif}
+a{color:#1f5fbf;text-decoration:none}a:hover{text-decoration:underline}h1,h2,h3{font-family:'Cairo',sans-serif}
 .top{background:#fff;border-bottom:1px solid #e6eaf2;padding:14px 24px;display:flex;align-items:center;gap:18px}
-.top img{height:42px}.top .nav{margin-left:auto;font-weight:700;color:#253b98}
-.wrap{max-width:1180px;margin:0 auto;padding:22px 24px 60px}
-.crumb{color:#ff9100;font-size:13px;font-weight:700;margin-bottom:6px}.crumb a{color:#ff9100}
-h1{font-size:30px;color:#0b1a3a}.sub{font-size:18px;color:#36486b;margin:4px 0 20px;font-weight:400}
-.grid{display:grid;grid-template-columns:260px 1fr 300px;gap:20px;align-items:start}
-.box{border:1px solid #dfe5f0;border-radius:6px;overflow:hidden}.box h3{background:#0b1f55;color:#fff;font-size:15px;padding:11px 14px}
-.box .bd{padding:14px}
-table{border-collapse:collapse;width:100%;font-size:14px}td{padding:6px 10px;border-bottom:1px solid #eef1f7}.k{color:#5b6b85;width:45%}
-.price th{background:#0b1f55;color:#fff;padding:7px 10px;font-size:14px}.price td{text-align:center;border:1px solid #e3e8f2}
-.file{display:block;padding:7px 0;border-bottom:1px solid #eef1f7;font-weight:600}
-.stock{display:inline-block;background:#e9f7ec;color:#1b7a36;border-radius:5px;padding:5px 12px;font-weight:700;margin-top:8px}
-.imgbox{text-align:center;padding:18px;border:1px solid #dfe5f0;border-radius:6px}
-.note{color:#5b6b85;font-size:13px;margin-top:8px}
-@media(max-width:900px){.grid{grid-template-columns:1fr}}
+.top img{height:44px}.topnav{margin-left:auto;display:flex;gap:22px;font-weight:600;color:#0b1a3a;font-size:14px}
+.wrap{max-width:1280px;margin:0 auto;padding:20px 24px 70px}
+.crumb{color:#ff9100;font-size:14px;font-weight:700;margin-bottom:6px}.crumb a{color:#ff9100}
+h1{font-size:34px;color:#0b1a3a;letter-spacing:-.5px}.sub{font-size:22px;color:#1a2b4a;margin:2px 0 22px;font-weight:400}
+.grid{display:grid;grid-template-columns:250px 1fr 1fr 300px;gap:18px;align-items:start}
+@media(max-width:1050px){.grid{grid-template-columns:1fr 1fr}}@media(max-width:680px){.grid{grid-template-columns:1fr}}
+.box{border:1px solid #d6deea;border-radius:3px;overflow:hidden;background:#fff}
+.box h3{background:#0b2b66;color:#fff;font-size:16px;font-weight:700;padding:12px 15px}
+.box .bd{padding:6px 15px 14px}
+.dl{display:flex;align-items:center;gap:12px;padding:11px 2px;border-bottom:1px solid #eef1f7;font-size:16px;font-weight:600;color:#1f5fbf}
+.dl:last-child{border-bottom:0}.dl .ico{font-size:20px;width:26px;text-align:center;color:#0b2b66}
+.ai{display:block;padding:11px 2px;border-bottom:1px solid #f0f3f8;font-size:16px;font-weight:600;color:#1f5fbf}.ai:last-child{border-bottom:0}
+.xblock{display:flex;align-items:center;gap:10px;background:#0b2b66;color:#cfff45;font-weight:700;padding:9px 12px;border:2px solid #cfff45;margin-bottom:6px;font-size:14px}
+.xblock b{background:#cfff45;color:#0b2b66;padding:1px 8px;border-radius:3px}
+.intl{text-align:center;color:#1f5fbf;font-weight:600;padding:10px 0;text-decoration:underline}
+.price{border-collapse:collapse;width:100%;font-size:16px}
+.price th{background:#0b2b66;color:#fff;padding:9px;font-weight:700;border:1px solid #0b2b66}
+.price td{text-align:center;border:1px solid #cfdaec;padding:8px}.price tr.alt td{background:#e8f0fb}
+.stockrow{display:flex;align-items:center;justify-content:space-between;margin:14px 0 4px}.stockrow .lbl{color:#1f5fbf;font-weight:700}
+.stockpill{background:#eef0f3;border:1px solid #cfd6e0;border-radius:6px;padding:7px 14px;font-weight:700}
+.buyrow{border-top:1px solid #e3e8f2;margin-top:12px;padding-top:12px}
+.buyrow .bf{font-size:20px;color:#0b1a3a;font-weight:700;display:flex;align-items:center;gap:8px}.buyrow .bf img{height:20px}
+.qty{display:flex;align-items:center;gap:10px;margin-top:10px}.qty input{flex:1;border:1px solid #b9c4d6;border-radius:3px;padding:8px}
+.buynow{background:#e9edf2;border:1px solid #b9c4d6;border-radius:4px;padding:8px 16px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px}
+.imgcol{text-align:center}.imgcol .note{color:#5b6b85;font-size:13px;margin:8px 0 16px}
+.rohs{color:#1b7a1b;font-weight:900;font-size:24px;letter-spacing:1px}.rohs span{display:block;font-size:13px}
+.research{display:inline-block;background:#1f5fbf;color:#fff;border-radius:30px;padding:12px 26px;font-weight:700;font-family:'Cairo';margin:14px 0;cursor:pointer;letter-spacing:.04em}
 </style></head><body>
-<div class="top"><a href="/"><img src="/assets/logo.png" alt="Mini-Circuits"></a><a class="nav" href="/">← Home / Chat with Minny</a></div>
+<div class="top"><a href="/"><img src="/assets/logo.png" alt="Mini-Circuits"></a>
+  <div class="topnav"><a href="/">Products</a><a href="/">Tools and Resources</a><a href="/">Quality and Compliance</a><a href="/">About Us</a><a href="/">Contact and Support</a></div>
+</div>
 <div class="wrap">
-  <div class="crumb"><a href="/">RF &amp; Microwave Products</a> › ${esc(group)}</div>
+  <div class="crumb"><a href="/">RF &amp; Microwave Products</a> › <a href="/c/${esc(n.cat || '')}">${esc(group)}</a></div>
   <h1>${esc(pn)}</h1>
   <div class="sub">${esc(title)}</div>
   <div class="grid">
-    <div>
-      <div class="imgbox">${img}<div class="note">Generic photo for illustration.</div></div>
+    <div class="imgcol">
+      ${img}
+      <div class="note">Generic photo used for illustration purposes only.</div>
+      <div class="research" onclick="window.__minnySend && window.__minnySend('What applications and related research exist for ${esc(pn)}?')">READ RELATED RESEARCH</div>
+      <div class="rohs">✔<span>RoHS</span></div>
     </div>
-    <div class="box"><h3>Specifications</h3><div class="bd"><table>${specRows.join('') || '<tr><td>See datasheet</td></tr>'}</table></div>
-      <div class="box" style="margin-top:18px"><h3>Data, Drawings &amp; Downloads</h3><div class="bd">${files || '<div class="note">Files available on the datasheet — ask Minny.</div>'}</div></div>
-    </div>
+    <div class="box"><h3>Data, Drawings &amp; Downloads</h3><div class="bd">${files || '<div style="padding:10px 0;color:#5b6b85">Files are on the datasheet — ask Minny.</div>'}</div></div>
+    <div class="box"><h3>Additional Information</h3><div class="bd">
+      <div class="xblock"><b>X</b> Get the X-MWblock® drop-in</div>${addl}</div></div>
     <div class="box"><h3>Pricing &amp; Availability</h3><div class="bd">
-      ${tiers ? '<table class="price"><tr><th>Qty</th><th>Unit Price</th></tr>' + tiers + '</table>' : '<div class="note">Pricing not published online.</div>'}
-      ${det.stock ? '<div class="stock">In stock: ' + esc(det.stock) + '</div>' : ''}
-      <button onclick="window.__minnySend ? window.__minnySend('Tell me about ${esc(pn)}') : (location.href='/')" style="margin-top:14px;width:100%;background:#ff9100;color:#fff;border:none;border-radius:5px;padding:11px;font-weight:700;font-family:'Cairo';cursor:pointer">⚡ Ask Minny about ${esc(pn)}</button>
+      <div class="intl">International Shipping Option ></div>
+      ${tiers ? '<table class="price"><tr><th>Quantity</th><th>Unit Price</th></tr>' + tiers + '</table>' : '<div style="padding:10px 0;color:#5b6b85">Pricing not published online — ask Minny for a quote.</div>'}
+      <div class="stockrow"><span class="lbl">Current Stock:</span><span class="stockpill">${esc(det.stock || '—')}</span></div>
+      <div class="buyrow"><div class="bf">Buy from: <img src="/assets/logo.png" alt="Mini-Circuits"></div>
+        <div class="qty"><span>QTY:</span><input type="text" id="qty"><button class="buynow" onclick="window.__minnySend && window.__minnySend('I want to order ${esc(pn)} — quantity '+(document.getElementById('qty').value||'1'))">🛒 Buy Now</button></div>
+      </div>
     </div></div>
   </div>
 </div>

@@ -456,7 +456,7 @@ async function getProductDetails(pn) {
   let r = await mcGet(`/WebStore/dashboard.html?model=${encodeURIComponent(pn)}`, cookie);
   if (r.body.length < 2000) { mcCookie = null; cookie = await getMcCookie(); r = await mcGet(`/WebStore/dashboard.html?model=${encodeURIComponent(pn)}`, cookie); }
   const html = r.body || '';
-  const data = { pn, found: html.length > 2000, url: `https://www.minicircuits.com/WebStore/dashboard.html?model=${encodeURIComponent(pn)}` };
+  const data = { pn, found: html.length > 2000, url: `/p/${encodeURIComponent(pn)}` };
   const tm = html.match(/<title>([^<|]+)/); if (tm) data.title = tm[1].trim();
   const tiers = [...html.matchAll(/<td class="td_length">\s*([\d,]+)\s*<\/td>\s*<td class="td_length2">\s*(?:&#36;|\$)?\s*([\d.]+)\s*<\/td>/g)]
     .map(m => ({ qty: parseInt(m[1].replace(/,/g, ''), 10), price: parseFloat(m[2]) }));
@@ -472,7 +472,8 @@ async function getProductDetails(pn) {
     if (/patent|product-catalog|case_style_search/i.test(href)) continue;
     if (!href.startsWith('http')) href = 'https://www.minicircuits.com' + (href.startsWith('/') ? '' : '/') + href.replace(/^\.\.\//, '/');
     if (seen.has(href) || !label) continue; seen.add(href);
-    files.push({ label, href });
+    // Serve files THROUGH our domain (proxied) so nothing leaves the site.
+    files.push({ label, href: '/dl?u=' + encodeURIComponent(href) });
   }
   if (files.length) data.files = files.slice(0, 16);
   productCache.set(pn, { data, at: Date.now() });
@@ -483,6 +484,107 @@ app.get('/api/product', async (req, res) => {
   try { res.json(await getProductDetails(req.query.pn)); }
   catch (e) { res.status(500).json({ error: e.message }); }
 });
+
+// ── File proxy — stream Mini-Circuits files through OUR domain ────────────────
+app.get('/dl', (req, res) => {
+  let u; try { u = new URL(req.query.u); } catch { return res.status(400).send('bad url'); }
+  if (!/(^|\.)minicircuits\.com$/i.test(u.hostname)) return res.status(403).send('forbidden host');
+  const opts = { hostname: u.hostname, path: u.pathname + u.search, headers: { 'User-Agent': 'Mozilla/5.0', 'Referer': 'https://www.minicircuits.com/', 'Accept': '*/*' } };
+  const upstream = https.get(opts, (r) => {
+    if (r.statusCode && r.statusCode >= 300 && r.statusCode < 400 && r.headers.location) {
+      // follow one redirect
+      https.get(r.headers.location, { headers: opts.headers }, (r2) => { pipe(r2); }).on('error', () => res.status(502).end());
+      return;
+    }
+    pipe(r);
+  });
+  upstream.on('error', () => res.status(502).send('upstream error'));
+  upstream.setTimeout(15000, () => { upstream.destroy(); res.status(504).end(); });
+  function pipe(r) {
+    res.set('Content-Type', r.headers['content-type'] || 'application/octet-stream');
+    res.set('Cache-Control', 'public, max-age=86400');
+    const fn = u.pathname.split('/').pop() || 'file';
+    if (/\.(pdf|zip|s2p)$/i.test(fn)) res.set('Content-Disposition', 'inline; filename="' + fn + '"');
+    r.pipe(res);
+  }
+});
+
+// ── Product page — a real dashboard page hosted on OUR domain ────────────────
+app.get('/p/:pn', requirePasscode2, async (req, res) => {
+  const pn = req.params.pn;
+  let det = {}; try { det = await getProductDetails(pn); } catch (e) {}
+  const rec = ALL_PRODUCTS.find(p => p.pn === pn);
+  const n = rec ? normalize(rec) : { pn };
+  res.set('Cache-Control', 'no-cache');
+  res.set('Content-Type', 'text/html; charset=utf-8');
+  res.send(renderProductPage(pn, n, det));
+});
+// product pages are public to browse (no chat cost); keep them open
+function requirePasscode2(req, res, next) { return next(); }
+
+function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+function renderProductPage(pn, n, det) {
+  const title = det.title ? det.title.replace(/\s*\|\s*Mini-Circuits.*$/i, '') : (n.desc || pn);
+  const group = n.group || '';
+  const specRows = [];
+  const add = (k, v) => { if (v != null && v !== '') specRows.push('<tr><td class="k">' + esc(k) + '</td><td>' + esc(v) + '</td></tr>'); };
+  add('Category', group);
+  if (n.flo != null && n.fhi != null) add('Frequency', n.flo + ' – ' + n.fhi + ' MHz');
+  add('Gain', n.gain != null ? n.gain + ' dB' : '');
+  add('Noise Figure', n.nf != null ? n.nf + ' dB' : '');
+  add('P1dB', n.p1o != null ? n.p1o + ' dBm' : '');
+  add('Insertion Loss', n.il != null ? n.il + ' dB' : '');
+  add('Isolation', n.iso != null ? n.iso + ' dB' : '');
+  add('Impedance', n.impedance != null ? (n.impedance + 'Ω' + (n.impedance_ratio ? (' (ratio ' + n.impedance_ratio + ':1)') : '')) : '');
+  add('Case Style', n.case_style);
+  const tiers = (det.price_tiers || []).map(t => '<tr><td>' + esc(t.qty) + '</td><td>$' + esc(t.price) + '</td></tr>').join('');
+  const files = (det.files || []).map(f => '<a class="file" href="' + esc(f.href) + '" target="_blank" rel="noopener">📄 ' + esc(f.label) + '</a>').join('');
+  const img = '<img src="/api/img?pn=' + encodeURIComponent(pn) + '&case=' + encodeURIComponent(n.case_style || '') + '" onerror="this.style.display=\'none\'" style="max-width:230px;max-height:200px;object-fit:contain">';
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${esc(pn)} | ${esc(title)} | Mini-Circuits</title>
+<link rel="icon" href="/assets/favicon.ico">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Roboto+Condensed:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Roboto Condensed',Arial,sans-serif;color:#1a2332;background:#fff}
+a{color:#253b98;text-decoration:none}h1,h2,h3{font-family:'Cairo',sans-serif}
+.top{background:#fff;border-bottom:1px solid #e6eaf2;padding:14px 24px;display:flex;align-items:center;gap:18px}
+.top img{height:42px}.top .nav{margin-left:auto;font-weight:700;color:#253b98}
+.wrap{max-width:1180px;margin:0 auto;padding:22px 24px 60px}
+.crumb{color:#ff9100;font-size:13px;font-weight:700;margin-bottom:6px}.crumb a{color:#ff9100}
+h1{font-size:30px;color:#0b1a3a}.sub{font-size:18px;color:#36486b;margin:4px 0 20px;font-weight:400}
+.grid{display:grid;grid-template-columns:260px 1fr 300px;gap:20px;align-items:start}
+.box{border:1px solid #dfe5f0;border-radius:6px;overflow:hidden}.box h3{background:#0b1f55;color:#fff;font-size:15px;padding:11px 14px}
+.box .bd{padding:14px}
+table{border-collapse:collapse;width:100%;font-size:14px}td{padding:6px 10px;border-bottom:1px solid #eef1f7}.k{color:#5b6b85;width:45%}
+.price th{background:#0b1f55;color:#fff;padding:7px 10px;font-size:14px}.price td{text-align:center;border:1px solid #e3e8f2}
+.file{display:block;padding:7px 0;border-bottom:1px solid #eef1f7;font-weight:600}
+.stock{display:inline-block;background:#e9f7ec;color:#1b7a36;border-radius:5px;padding:5px 12px;font-weight:700;margin-top:8px}
+.imgbox{text-align:center;padding:18px;border:1px solid #dfe5f0;border-radius:6px}
+.note{color:#5b6b85;font-size:13px;margin-top:8px}
+@media(max-width:900px){.grid{grid-template-columns:1fr}}
+</style></head><body>
+<div class="top"><a href="/"><img src="/assets/logo.png" alt="Mini-Circuits"></a><a class="nav" href="/">← Home / Chat with Minny</a></div>
+<div class="wrap">
+  <div class="crumb"><a href="/">RF &amp; Microwave Products</a> › ${esc(group)}</div>
+  <h1>${esc(pn)}</h1>
+  <div class="sub">${esc(title)}</div>
+  <div class="grid">
+    <div>
+      <div class="imgbox">${img}<div class="note">Generic photo for illustration.</div></div>
+    </div>
+    <div class="box"><h3>Specifications</h3><div class="bd"><table>${specRows.join('') || '<tr><td>See datasheet</td></tr>'}</table></div>
+      <div class="box" style="margin-top:18px"><h3>Data, Drawings &amp; Downloads</h3><div class="bd">${files || '<div class="note">Files available on the datasheet — ask Minny.</div>'}</div></div>
+    </div>
+    <div class="box"><h3>Pricing &amp; Availability</h3><div class="bd">
+      ${tiers ? '<table class="price"><tr><th>Qty</th><th>Unit Price</th></tr>' + tiers + '</table>' : '<div class="note">Pricing not published online.</div>'}
+      ${det.stock ? '<div class="stock">In stock: ' + esc(det.stock) + '</div>' : ''}
+      <button onclick="window.__minnySend ? window.__minnySend('Tell me about ${esc(pn)}') : (location.href='/')" style="margin-top:14px;width:100%;background:#ff9100;color:#fff;border:none;border-radius:5px;padding:11px;font-weight:700;font-family:'Cairo';cursor:pointer">⚡ Ask Minny about ${esc(pn)}</button>
+    </div></div>
+  </div>
+</div>
+<script src="/minny-widget.js"></script>
+</body></html>`;
+}
 
 // ── Main chat endpoint (Claude tool-use loop) ────────────────────────────────
 app.post('/api/chat', requirePasscode, async (req, res) => {

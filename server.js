@@ -886,16 +886,25 @@ app.post('/api/chat', requirePasscode, async (req, res) => {
       reply = reply.replace(chipM[0], '').trim();
     }
 
-    // 2) Auto-hyperlink every recommended part number to its product page,
-    //    whether the model bolded it as <strong>PN</strong> or **PN**.
+    // 2) Auto-hyperlink every recommended part number to its product page ON
+    //    OUR domain (/p/<PN>), whether the model bolded it as <strong>PN</strong>
+    //    or **PN**. Never link to minicircuits.com/dashboard.html — that needs a
+    //    session cookie and shows "Invalid parameter" on direct navigation.
     for (const p of mentionedProducts) {
-      if (!p.url) continue;
       const e = p.pn.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const href = '/p/' + encodeURIComponent(p.pn);
       reply = reply.replace(
         new RegExp(`(?:<strong>|\\*\\*)${e}(?:</strong>|\\*\\*)`, 'g'),
-        `<a href="${p.url}" target="_blank" rel="noopener"><strong>${p.pn}</strong></a>`
+        `<a href="${href}" target="_blank" rel="noopener"><strong>${p.pn}</strong></a>`
       );
     }
+
+    // 3) Defensive: rewrite any minicircuits.com dashboard/modelSearch links the
+    //    model may have written (href="" or markdown form) to our /p/ route.
+    reply = reply.replace(/href="(?:https?:\/\/[^"]*minicircuits\.com)?(?:\.\.\/|\/)?(?:WebStore\/)?(?:dashboard|modelSearch)\.html\?model=([^"&]+)[^"]*"/gi,
+      (m, model) => `href="/p/${model}"`);
+    reply = reply.replace(/\]\((?:https?:\/\/[^)\s]*minicircuits\.com)?(?:\.\.\/|\/)?(?:WebStore\/)?(?:dashboard|modelSearch)\.html\?model=([^)\s&]+)[^)\s]*\)/gi,
+      (m, model) => `](/p/${model})`);
 
     res.json({ reply, products: mentionedProducts.slice(0, 4), suggestions, tokens: usage });
 

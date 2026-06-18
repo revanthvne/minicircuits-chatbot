@@ -75,7 +75,7 @@
   function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
   function escA(s){return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');}
   function md(s){ if(!s) return '';
-    s=s.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');
+    s=s.replace(/\[([^\]]+)\]\(((?:https?:\/\/|\/)[^)\s]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');
     s=s.replace(/\*\*([^*\n]+)\*\*/g,'<strong>$1</strong>');
     s=s.replace(/^\s*#{1,6}\s*(.+?)\s*$/gm,'<strong>$1</strong>');
     s=s.replace(/^\s*[-*_]{3,}\s*$/gm,'<div style="border-top:1px solid #e6eaf2;margin:7px 0"></div>');
@@ -95,9 +95,10 @@
     if(p.nf!=null)sp+='<span class="sp">NF:'+p.nf+' dB</span>';
     if(p.impedance!=null)sp+='<span class="sp">'+p.impedance+'Ω'+(p.impedance_ratio?(' '+p.impedance_ratio+':1'):'')+'</span>';
     var img='<img src="'+ORIGIN+'/api/img?pn='+encodeURIComponent(p.pn)+'&case='+encodeURIComponent(p.case_style||'')+'" onerror="this.style.display=\'none\'" style="float:right;width:58px;height:58px;object-fit:contain;margin:0 0 4px 8px;background:#fff;border-radius:4px">';
-    var price=(typeof p.price==='number'&&p.price>0)?('$'+p.price):'';
-    var ds=p.datasheet_url?(' &nbsp; <a class="lk" href="'+escA(p.datasheet_url)+'" target="_blank" rel="noopener" onclick="event.stopPropagation()">Datasheet</a>'):'';
-    return '<div class="mn-card" onclick="window.__minnySend(\'Tell me about '+escA(p.pn)+'\')">'+img+'<div class="pn">'+esc(p.pn)+'</div>'+(p.desc?'<div class="ds">'+esc(p.desc)+'</div>':'')+'<div>'+sp+'</div><div style="margin-top:6px">'+(price?'<span class="lk">'+price+'</span>':'<a class="lk" href="'+escA(p.url||'#')+'" target="_blank" rel="noopener" onclick="event.stopPropagation()">See live pricing →</a>')+ds+'</div></div>';
+    var pp=ORIGIN+'/p/'+encodeURIComponent(p.pn);
+    var price=(typeof p.price==='number'&&p.price>0)?('<span class="lk">$'+p.price+'</span> &nbsp; '):'';
+    var ds=p.datasheet_url?(' &nbsp; <a class="lk" href="'+escA(ORIGIN+'/dl?u='+encodeURIComponent(p.datasheet_url))+'" target="_blank" rel="noopener" onclick="event.stopPropagation()">Datasheet</a>'):'';
+    return '<div class="mn-card" style="cursor:pointer" onclick="window.open(\''+pp+'\',\'_blank\')">'+img+'<div class="pn">'+esc(p.pn)+'</div>'+(p.desc?'<div class="ds">'+esc(p.desc)+'</div>':'')+'<div>'+sp+'</div><div style="margin-top:6px">'+price+'<a class="lk" href="'+escA(pp)+'" target="_blank" rel="noopener" onclick="event.stopPropagation()">View product →</a>'+ds+'</div></div>';
   }
 
   function chips(list){ var r=document.createElement('div'); r.className='mn-chips';

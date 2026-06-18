@@ -509,6 +509,28 @@ app.get('/dl', (req, res) => {
   }
 });
 
+// ── Asset proxy — serve minicircuits.com CSS/JS/fonts/images from OUR origin ──
+// (same-origin avoids the cross-origin font/CORS blocking that turns icons into
+//  boxes, so the mirrored pages render with their exact fonts and icons.)
+app.get('/mc/*', (req, res) => {
+  const rest = req.originalUrl.slice('/mc/'.length);
+  if (!rest) return res.status(400).end();
+  const fetchPath = (p, redirects) => {
+    const r = https.get({ hostname: 'www.minicircuits.com', path: '/' + p, headers: { 'User-Agent': 'Mozilla/5.0', 'Referer': MC + '/', 'Accept': '*/*' } }, (up) => {
+      if (up.statusCode >= 300 && up.statusCode < 400 && up.headers.location && redirects < 3) {
+        up.resume(); const loc = up.headers.location.replace(/^https?:\/\/[^/]*minicircuits\.com\//i, ''); return fetchPath(loc.replace(/^\//, ''), redirects + 1);
+      }
+      res.set('Access-Control-Allow-Origin', '*');
+      if (up.headers['content-type']) res.set('Content-Type', up.headers['content-type']);
+      res.set('Cache-Control', 'public, max-age=604800');
+      up.pipe(res);
+    });
+    r.on('error', () => res.status(502).end());
+    r.setTimeout(15000, () => { r.destroy(); res.status(504).end(); });
+  };
+  fetchPath(rest, 0);
+});
+
 // ── Product page — mirror the REAL dashboard (exact icons/fonts/layout) but
 //    rewrite links so products stay on our domain and files stream via /dl. ──
 const MC = 'https://www.minicircuits.com';
@@ -526,23 +548,22 @@ async function mirrorDashboard(pn) {
   return h;
 }
 function rewriteDashboard(h) {
-  // A) product links -> our /p/  (keep before generic .html rewrite)
+  // A) product links -> our /p/
   h = h.replace(/(href|action)\s*=\s*"(?:\.\.\/|\/)?WebStore\/(?:dashboard|modelSearch)\.html\?model=([^"&]+)[^"]*"/gi, (m, a, enc) => `${a}="/p/${enc}"`);
-  // B) downloadable files -> /dl proxy (served from our domain)
+  // B) downloadable files -> /dl proxy
   h = h.replace(/href\s*=\s*"((?:https?:\/\/[^"]*minicircuits\.com)?(?:\.\.\/|\/)?(?:pdfs|pages\/s-params|case_style|pcb)\/[^"]+)"/gi, (m, p) => {
     let abs = p.startsWith('http') ? p : MC + '/' + p.replace(/^(?:\.\.\/|\/)+/, '');
     return 'href="/dl?u=' + encodeURIComponent(abs) + '" target="_blank"';
   });
-  // C) make all assets (css/js/img/fonts/icons) load from minicircuits.com
-  h = h.replace(/(src|href)\s*=\s*"((?:\.\.\/)+)([^"]+)"/gi, (m, a, dots, rest) => `${a}="${MC}/${rest}"`);
-  h = h.replace(/(src|href)\s*=\s*"(css|js|images|font_awesome|Scripts|fonts|x2cms|webfonts)\/([^"]+)"/gi, (m, a, dir, rest) => `${a}="${MC}/${dir}/${rest}"`);
-  h = h.replace(/(src|href)\s*=\s*"\/((?!\/)[^"]*\.(?:css|js|png|jpe?g|gif|svg|woff2?|ttf|eot|ico|webp)(?:\?[^"]*)?)"/gi, (m, a, rest) => `${a}="${MC}/${rest}"`);
-  h = h.replace(/url\((['"]?)(?:\.\.\/|\/)([^)'"]+)\1\)/gi, (m, q, rest) => `url(${q}${MC}/${rest}${q})`);
-  // D) neutralize remaining page navigation (relative/MC .html pages) -> our home
-  h = h.replace(/href\s*=\s*"(?!\/p\/|\/dl\?|#|mailto:|javascript:|https?:\/\/(?:fonts\.|js\.|track\.|px\.|www\.google|i0\.wp|blog\.))(?:https?:\/\/[^"]*minicircuits\.com)?(?:\.\.\/|\/)?[^"]*\.html[^"]*"/gi, 'href="/"');
+  // C) neutralize remaining page navigation (.html pages, relative or MC) -> our home
+  h = h.replace(/href\s*=\s*"(?!\/p\/|\/dl\?|\/mc\/|#|mailto:|javascript:|https?:\/\/(?:fonts\.|js\.|track\.|px\.|www\.google|i0\.wp|blog\.))(?:https?:\/\/[^"]*minicircuits\.com)?(?:\.\.\/|\/)?[^"]*\.html[^"]*"/gi, 'href="/"');
+  // D) route ALL assets (css/js/img/fonts/icons) through OUR /mc proxy so they
+  //    load same-origin (avoids cross-origin font/CORS blocking → exact icons & fonts).
+  h = h.replace(/(src|href)\s*=\s*"(?:https?:\/\/(?:www\.)?minicircuits\.com)?\/?(?:\.\.\/)*([A-Za-z0-9_][^"]*\.(?:css|js|png|jpe?g|gif|svg|woff2?|ttf|eot|ico|webp)(?:\?[^"]*)?)"/gi, (m, a, rest) => `${a}="/mc/${rest}"`);
+  h = h.replace(/url\((['"]?)(?:https?:\/\/(?:www\.)?minicircuits\.com)?\/?(?:\.\.\/)*([^)'"]+)\1\)/gi, (m, q, rest) => `url(${q}/mc/${rest}${q})`);
   // E) don't let the Buy form post to their store
   h = h.replace(/<form([^>]*?)\saction\s*=\s*"[^"]*"/gi, '<form$1 action="javascript:void(0)"');
-  // F) inject our chat widget (root-relative -> our origin; no <base> on this page)
+  // F) inject our chat widget
   const inject = '\n<script src="/minny-widget.js"></script>\n';
   h = /<\/body>/i.test(h) ? h.replace(/<\/body>/i, inject + '</body>') : h + inject;
   return h;

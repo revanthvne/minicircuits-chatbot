@@ -522,6 +522,71 @@ app.get('/p/:pn', requirePasscode2, async (req, res) => {
 // product pages are public to browse (no chat cost); keep them open
 function requirePasscode2(req, res, next) { return next(); }
 
+// ── Category listing pages — every product in a category, hosted on our site ──
+const CAT_NAMES = {
+  adapter:'Adapters', amp:'Amplifiers', att:'Attenuators', bias:'Bias Tees', cable:'Cables',
+  cpl:'Couplers', dcb:'DC Blocks', eq:'Equalizers', flt:'Filters', mix:'Frequency Mixers',
+  mult:'Frequency Multipliers', match:'Impedance Matching Pads', lim:'Limiters',
+  mod:'Modulators / Demodulators', osc:'Oscillators', pd:'Phase Detectors', ps:'Phase Shifters',
+  pdet:'Power Detectors', psen:'Power Sensors', spl:'Power Splitters / Combiners', chk:'RF Chokes',
+  sw:'Switches', syn:'Synthesizers', term:'Terminations', xfmr:'Transformers / Baluns',
+  wg:'Waveguides', die:'MMIC Die', test:'Test Solutions', acc:'Accessories',
+};
+const CAT_INDEX = (() => {
+  const m = {}; for (const p of ALL_PRODUCTS) { if (p.cat === 'noncat') continue; (m[p.cat] = m[p.cat] || []).push(p); } return m;
+})();
+function resolveCat(param) {
+  const s = String(param || '').toLowerCase();
+  if (CAT_NAMES[s]) return s;
+  for (const code in CAT_NAMES) if (CAT_NAMES[code].toLowerCase().replace(/[^a-z]/g, '') === s.replace(/[^a-z]/g, '')) return code;
+  // partial alias
+  const ali = { amplifier:'amp', filter:'flt', mixer:'mix', attenuator:'att', splitter:'spl', combiner:'spl', switch:'sw', coupler:'cpl', transformer:'xfmr', balun:'xfmr', oscillator:'osc', vco:'osc', synthesizer:'syn' };
+  for (const k in ali) if (s.includes(k)) return ali[k];
+  return CAT_NAMES[s] ? s : (CAT_INDEX[s] ? s : null);
+}
+app.get('/c/:cat', (req, res) => {
+  const code = resolveCat(req.params.cat);
+  const list = (CAT_INDEX[code] || []).map(normalize);
+  res.set('Cache-Control', 'no-cache'); res.set('Content-Type', 'text/html; charset=utf-8');
+  res.send(renderCategoryPage(code, CAT_NAMES[code] || (req.params.cat), list));
+});
+function renderCategoryPage(code, name, list) {
+  const cards = list.map(p => {
+    const f = (p.flo != null && p.fhi != null) ? (p.flo + '–' + p.fhi + ' MHz') : '';
+    const bits = [f, p.gain != null ? ('Gain ' + p.gain + ' dB') : '', p.nf != null ? ('NF ' + p.nf + ' dB') : '', p.impedance != null ? (p.impedance + 'Ω') : ''].filter(Boolean).slice(0, 3).join(' · ');
+    return `<a class="cc" href="/p/${encodeURIComponent(p.pn)}" data-s="${esc((p.pn + ' ' + (p.desc || '')).toLowerCase())}">
+      <img loading="lazy" src="/api/img?pn=${encodeURIComponent(p.pn)}&case=${encodeURIComponent(p.case_style || '')}" onerror="this.style.display='none'">
+      <div class="pn">${esc(p.pn)}</div>${p.desc ? '<div class="ds">' + esc(p.desc) + '</div>' : ''}${bits ? '<div class="sp">' + esc(bits) + '</div>' : ''}</a>`;
+  }).join('');
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${esc(name)} | Mini-Circuits</title><link rel="icon" href="/assets/favicon.ico">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Roboto+Condensed:wght@400;500;700&display=swap" rel="stylesheet">
+<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Roboto Condensed',Arial,sans-serif;color:#1a2332;background:#f4f6fb}
+a{color:#253b98;text-decoration:none}h1{font-family:'Cairo',sans-serif}
+.top{background:#fff;border-bottom:1px solid #e6eaf2;padding:14px 24px;display:flex;align-items:center;gap:18px}.top img{height:42px}.top .nav{margin-left:auto;font-weight:700}
+.wrap{max-width:1280px;margin:0 auto;padding:22px 24px 60px}
+.crumb{color:#ff9100;font-size:13px;font-weight:700;margin-bottom:6px}.crumb a{color:#ff9100}
+h1{font-size:30px;color:#0b1a3a;margin-bottom:4px}.cnt{color:#5b6b85;margin-bottom:16px}
+#f{width:100%;max-width:380px;padding:10px 14px;border:1.5px solid #cdd6e6;border-radius:8px;font-size:14px;margin-bottom:18px;font-family:inherit}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.cc{background:#fff;border:1.5px solid #e2e8f0;border-radius:9px;padding:12px;display:flex;flex-direction:column;transition:.15s;min-height:120px}
+.cc:hover{border-color:#ff9100;box-shadow:0 4px 14px rgba(0,0,0,.08)}
+.cc img{height:70px;object-fit:contain;margin-bottom:8px;background:#fff}
+.cc .pn{font-family:'Courier New',monospace;font-weight:800;color:#253b98;font-size:13px}
+.cc .ds{font-size:11.5px;color:#5b6b85;margin:3px 0;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.cc .sp{font-size:11px;color:#33415c;margin-top:auto;padding-top:5px}</style></head><body>
+<div class="top"><a href="/"><img src="/assets/logo.png" alt="Mini-Circuits"></a><a class="nav" href="/">← Home / Chat with Minny</a></div>
+<div class="wrap">
+  <div class="crumb"><a href="/">RF &amp; Microwave Products</a> › ${esc(name)}</div>
+  <h1>${esc(name)}</h1>
+  <div class="cnt">${list.length.toLocaleString()} products — click any part for specs, pricing, stock &amp; downloads</div>
+  <input id="f" placeholder="Filter ${esc(name)} by part number or description…" oninput="(function(v){v=v.toLowerCase();document.querySelectorAll('.cc').forEach(function(c){c.style.display=c.dataset.s.indexOf(v)>-1?'':'none'})})(this.value)">
+  <div class="grid">${cards || '<div>No products found.</div>'}</div>
+</div>
+<script src="/minny-widget.js"></script>
+</body></html>`;
+}
+
 function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 function renderProductPage(pn, n, det) {
   const title = det.title ? det.title.replace(/\s*\|\s*Mini-Circuits.*$/i, '') : (n.desc || pn);

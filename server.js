@@ -314,8 +314,10 @@ NON-CATALOG / CUSTOM LINES
 These have no public price/specs. If the user needs them, briefly describe the line, link the page, and route to the team with [NEEDS_HUMAN].
 ${NONCAT_SUMMARY}
 
-ESCALATION
-For bulk pricing, custom parts, account management, or anything outside RF/Mini-Circuits, add [NEEDS_HUMAN]. Be brief: "That's one for the team — [NEEDS_HUMAN]".
+HONESTY — NO HALLUCINATION (most important rule)
+Never guess, estimate, approximate, or fabricate. If you do not have something — a specific spec value, a temperature/voltage derating, a compatibility or drop-in answer, a behavior you're not certain of, or anything you cannot confirm from the tool results or solid RF fundamentals — SAY SO PLAINLY: "I don't have that information" or "I can't confirm that." Do NOT fill the gap with a plausible-sounding number or claim. A clear "I don't know" is always better than a confident guess, and guessing is the worst thing you can do here.
+
+Whenever you don't know, can't confirm, or the request needs a person (exact datasheet specs you don't have, bulk/custom pricing, account management, lead times, or anything outside RF/Mini-Circuits), tell the user they can reach the Mini-Circuits applications engineering team by email and write it as a clickable link: <a href="mailto:apps@minicircuits.com">apps@minicircuits.com</a>. Then add [NEEDS_HUMAN]. Keep it brief, e.g.: I don't have that exact spec in front of me and I won't guess — the apps team can confirm it: <a href="mailto:apps@minicircuits.com">apps@minicircuits.com</a>. [NEEDS_HUMAN]
 
 Frequency units are MHz unless stated. Gain/NF/IL/rejection in dB; power in dBm; Vcc in V; Icc in mA.`;
 }
@@ -876,81 +878,87 @@ h1{font-size:34px;color:#0b1a3a;letter-spacing:-.5px}.sub{font-size:22px;color:#
 }
 
 // ── Main chat endpoint (Claude tool-use loop) ────────────────────────────────
-app.post('/api/chat', requirePasscode, async (req, res) => {
-  const { message, history = [] } = req.body;
-  if (!message?.trim()) return res.status(400).json({ error: 'Message is required' });
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return res.status(500).json({ error: 'API key missing', message: 'Set ANTHROPIC_API_KEY in your .env file and restart the server.' });
-  }
+// Max tool-use turns. Needs enough room for the model to search AND fetch live
+// details for a few candidate parts BEFORE writing the answer (a too-low cap
+// caused empty replies on parts-heavy queries).
+const MAX_TOOL_TURNS = 6;
 
+// Core chat logic (tool-use loop + post-processing). Reusable by the API route
+// and offline benchmarking. Returns { reply, products, suggestions, tokens, rawText }.
+async function runChat(message, history = []) {
   const systemPrompt = buildSystemPrompt();
   const messages = [
     ...history.slice(-12).map(h => ({ role: h.role, content: h.content })),
     { role: 'user', content: message },
   ];
 
+  let usage = { input: 0, output: 0 };
+  let finalText = '';
+
+  for (let turn = 0; turn < MAX_TOOL_TURNS; turn++) {
+    const response = await anthropic.messages.create({
+      model: MODEL, max_tokens: 1500, system: systemPrompt, tools: TOOLS, messages,
+    });
+    usage.input += response.usage.input_tokens;
+    usage.output += response.usage.output_tokens;
+
+    const toolUses = response.content.filter(c => c.type === 'tool_use');
+    finalText = response.content.filter(c => c.type === 'text').map(c => c.text).join('\n').trim();
+
+    if (response.stop_reason !== 'tool_use' || toolUses.length === 0) break;
+
+    messages.push({ role: 'assistant', content: response.content });
+    const toolResults = await Promise.all(toolUses.map(async (tu) => ({
+      type: 'tool_result',
+      tool_use_id: tu.id,
+      content: JSON.stringify(
+        tu.name === 'search_catalog'      ? searchCatalog(tu.input)
+      : tu.name === 'get_product_details' ? await getProductDetails((tu.input || {}).pn)
+      : { error: 'unknown tool' }),
+    })));
+    messages.push({ role: 'user', content: toolResults });
+  }
+
+  let reply = finalText;
+  const mentionedProducts = extractMentionedProducts(reply);
+
+  // 1) Pull out tappable answer chips: a line "CHIPS:: a :: b :: c".
+  let suggestions = [];
+  const chipM = reply.match(/CHIPS::\s*(.+?)\s*$/m);
+  if (chipM) {
+    suggestions = chipM[1].split('::').map(x => x.trim()).filter(Boolean).slice(0, 6);
+    reply = reply.replace(chipM[0], '').trim();
+  }
+
+  // 2) Auto-hyperlink every recommended part number to its product page on our
+  //    domain (/p/<PN>), whether bolded as <strong>PN</strong> or **PN**.
+  for (const p of mentionedProducts) {
+    const e = p.pn.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const href = '/p/' + encodeURIComponent(p.pn);
+    reply = reply.replace(
+      new RegExp(`(?:<strong>|\\*\\*)${e}(?:</strong>|\\*\\*)`, 'g'),
+      `<a href="${href}" target="_blank" rel="noopener"><strong>${p.pn}</strong></a>`
+    );
+  }
+
+  // 3) Defensive: rewrite any minicircuits.com dashboard/modelSearch links to /p/.
+  reply = reply.replace(/href="(?:https?:\/\/[^"]*minicircuits\.com)?(?:\.\.\/|\/)?(?:WebStore\/)?(?:dashboard|modelSearch)\.html\?model=([^"&]+)[^"]*"/gi,
+    (m, model) => `href="/p/${model}"`);
+  reply = reply.replace(/\]\((?:https?:\/\/[^)\s]*minicircuits\.com)?(?:\.\.\/|\/)?(?:WebStore\/)?(?:dashboard|modelSearch)\.html\?model=([^)\s&]+)[^)\s]*\)/gi,
+    (m, model) => `](/p/${model})`);
+
+  return { reply, products: mentionedProducts.slice(0, 4), suggestions, tokens: usage, rawText: finalText };
+}
+
+app.post('/api/chat', requirePasscode, async (req, res) => {
+  const { message, history = [] } = req.body;
+  if (!message?.trim()) return res.status(400).json({ error: 'Message is required' });
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return res.status(500).json({ error: 'API key missing', message: 'Set ANTHROPIC_API_KEY in your .env file and restart the server.' });
+  }
   try {
-    let usage = { input: 0, output: 0 };
-    let finalText = '';
-
-    // Tool-use loop: let Claude search the catalog, then answer.
-    for (let turn = 0; turn < 4; turn++) {
-      const response = await anthropic.messages.create({
-        model: MODEL, max_tokens: 1500, system: systemPrompt, tools: TOOLS, messages,
-      });
-      usage.input += response.usage.input_tokens;
-      usage.output += response.usage.output_tokens;
-
-      const toolUses = response.content.filter(c => c.type === 'tool_use');
-      finalText = response.content.filter(c => c.type === 'text').map(c => c.text).join('\n').trim();
-
-      if (response.stop_reason !== 'tool_use' || toolUses.length === 0) break;
-
-      messages.push({ role: 'assistant', content: response.content });
-      const toolResults = await Promise.all(toolUses.map(async (tu) => ({
-        type: 'tool_result',
-        tool_use_id: tu.id,
-        content: JSON.stringify(
-          tu.name === 'search_catalog'      ? searchCatalog(tu.input)
-        : tu.name === 'get_product_details' ? await getProductDetails((tu.input || {}).pn)
-        : { error: 'unknown tool' }),
-      })));
-      messages.push({ role: 'user', content: toolResults });
-    }
-
-    let reply = finalText;
-    const mentionedProducts = extractMentionedProducts(reply);
-
-    // 1) Pull out tappable answer chips: a line "CHIPS:: a :: b :: c".
-    let suggestions = [];
-    const chipM = reply.match(/CHIPS::\s*(.+?)\s*$/m);
-    if (chipM) {
-      suggestions = chipM[1].split('::').map(x => x.trim()).filter(Boolean).slice(0, 6);
-      reply = reply.replace(chipM[0], '').trim();
-    }
-
-    // 2) Auto-hyperlink every recommended part number to its product page ON
-    //    OUR domain (/p/<PN>), whether the model bolded it as <strong>PN</strong>
-    //    or **PN**. Never link to minicircuits.com/dashboard.html — that needs a
-    //    session cookie and shows "Invalid parameter" on direct navigation.
-    for (const p of mentionedProducts) {
-      const e = p.pn.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const href = '/p/' + encodeURIComponent(p.pn);
-      reply = reply.replace(
-        new RegExp(`(?:<strong>|\\*\\*)${e}(?:</strong>|\\*\\*)`, 'g'),
-        `<a href="${href}" target="_blank" rel="noopener"><strong>${p.pn}</strong></a>`
-      );
-    }
-
-    // 3) Defensive: rewrite any minicircuits.com dashboard/modelSearch links the
-    //    model may have written (href="" or markdown form) to our /p/ route.
-    reply = reply.replace(/href="(?:https?:\/\/[^"]*minicircuits\.com)?(?:\.\.\/|\/)?(?:WebStore\/)?(?:dashboard|modelSearch)\.html\?model=([^"&]+)[^"]*"/gi,
-      (m, model) => `href="/p/${model}"`);
-    reply = reply.replace(/\]\((?:https?:\/\/[^)\s]*minicircuits\.com)?(?:\.\.\/|\/)?(?:WebStore\/)?(?:dashboard|modelSearch)\.html\?model=([^)\s&]+)[^)\s]*\)/gi,
-      (m, model) => `](/p/${model})`);
-
-    res.json({ reply, products: mentionedProducts.slice(0, 4), suggestions, tokens: usage });
-
+    const out = await runChat(message, history);
+    res.json({ reply: out.reply, products: out.products, suggestions: out.suggestions, tokens: out.tokens });
   } catch (err) {
     console.error('Claude API error:', err.status, err.message);
     if (err.status === 401) return res.status(401).json({ error: 'Invalid API key', message: 'Your ANTHROPIC_API_KEY is invalid.' });
@@ -1027,3 +1035,4 @@ if (require.main === module) {
 }
 
 module.exports = app;
+module.exports.runChat = runChat;

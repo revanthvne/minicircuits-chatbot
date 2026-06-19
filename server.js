@@ -884,9 +884,6 @@ app.post('/api/chat', requirePasscode, async (req, res) => {
   }
 
   const systemPrompt = buildSystemPrompt();
-  // Cache the large system prompt so it isn't re-processed on every tool-loop
-  // turn / follow-up message — latency + cost win, zero quality change.
-  const systemBlocks = [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }];
   const messages = [
     ...history.slice(-12).map(h => ({ role: h.role, content: h.content })),
     { role: 'user', content: message },
@@ -899,7 +896,7 @@ app.post('/api/chat', requirePasscode, async (req, res) => {
     // Tool-use loop: let Claude search the catalog, then answer.
     for (let turn = 0; turn < 4; turn++) {
       const response = await anthropic.messages.create({
-        model: MODEL, max_tokens: 1500, system: systemBlocks, tools: TOOLS, messages,
+        model: MODEL, max_tokens: 1500, system: systemPrompt, tools: TOOLS, messages,
       });
       usage.input += response.usage.input_tokens;
       usage.output += response.usage.output_tokens;

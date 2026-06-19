@@ -28,6 +28,7 @@ app.use(express.json());
 // Serve the SPA but don't let browsers cache the HTML across deploys (otherwise
 // users keep seeing an old index.html / old card renderer after we ship a fix).
 app.use(express.static(path.join(__dirname, 'public'), {
+  index: false, // "/" is served by the live homepage mirror route, not index.html
   setHeaders: (res, fp) => { if (fp.endsWith('.html')) res.setHeader('Cache-Control', 'no-cache, must-revalidate'); },
 }));
 
@@ -546,6 +547,34 @@ async function mirrorDashboard(pn) {
   dashCache.set(pn, { html: h, at: Date.now() });
   return h;
 }
+// Live mirror of the real minicircuits.com homepage (served at "/").
+let homeCache = null;
+async function mirrorHomepage() {
+  if (homeCache && Date.now() - homeCache.at < 30 * 60 * 1000) return homeCache.html;
+  const cookie = await getMcCookie();
+  let r = await mcGet('/', cookie);
+  if ((r.body || '').length < 5000) { const g = await mcGet('/WebStore/Homepage.html', cookie); if ((g.body || '').length > (r.body || '').length) r = g; }
+  let h = r.body || '';
+  if (h.length < 5000) return null;
+  h = rewriteDashboard(h);
+  homeCache = { html: h, at: Date.now() };
+  return h;
+}
+// Generic live mirror of any other minicircuits.com page (nav links -> /m/<path>).
+const pageCache = new Map();
+async function mirrorPage(mcPath) {
+  mcPath = '/' + String(mcPath || '').replace(/^\/+/, '');
+  const c = pageCache.get(mcPath);
+  if (c && Date.now() - c.at < 30 * 60 * 1000) return c.html;
+  const cookie = await getMcCookie();
+  let r = await mcGet(mcPath, cookie);
+  if ((r.body || '').length < 1500) { const g = await mcGet(mcPath.split('?')[0], cookie); if ((g.body || '').length > (r.body || '').length) r = g; }
+  let h = r.body || '';
+  if (h.length < 800) return null;
+  h = rewriteDashboard(h);
+  pageCache.set(mcPath, { html: h, at: Date.now() });
+  return h;
+}
 function rewriteDashboard(h) {
   // A) product links -> our /p/  (root-relative, so unaffected by <base>).
   //    WebStore/ prefix is optional (category tables use bare modelSearch.html?model=).
@@ -560,8 +589,20 @@ function rewriteDashboard(h) {
   // C2) ROOT-relative asset paths (e.g. /images/case_style/X.png) — <base> would
   //     send these to our origin (404), so route them through /mc too.
   h = h.replace(/(src|href)\s*=\s*"\/(?!mc\/|p\/|dl\?|assets\/|minny-widget)([^"]+\.(?:css|js|png|jpe?g|gif|svg|woff2?|ttf|eot|ico|webp)(?:\?[^"]*)?)"/gi, (m, a, rest) => `${a}="/mc/${rest}"`);
-  // D) neutralize remaining page navigation (.html pages) -> our home
-  h = h.replace(/href\s*=\s*"(?!\/p\/|\/dl\?|\/mc\/|#|mailto:|javascript:|https?:\/\/(?:fonts\.|js\.|track\.|px\.|www\.google|i0\.wp|blog\.))(?:https?:\/\/[^"]*minicircuits\.com)?(?:\.\.\/|\/)?[^"]*\.html[^"]*"/gi, 'href="/"');
+  // D) keep Mini-Circuits page navigation on OUR domain: category Table-of-Models
+  //    pages -> /c/<code>; any other www.minicircuits.com page -> /m/ live mirror.
+  //    External subdomains (blog., lp., trackers) and assets are left untouched.
+  h = h.replace(/href\s*=\s*"(?!\/p\/|\/dl\?|\/mc\/|\/c\/|\/m\/|#|mailto:|tel:|javascript:)([^"]*)"/gi, (m, url) => {
+    if (/^https?:\/\/(?!(?:www\.)?minicircuits\.com)/i.test(url)) return m;          // external host
+    if (/\.(?:css|js|png|jpe?g|gif|svg|woff2?|ttf|eot|ico|webp)(?:\?|$)/i.test(url)) return m; // asset
+    let p = url.replace(/^https?:\/\/(?:www\.)?minicircuits\.com/i, '').replace(/#.*$/, '');
+    p = p.replace(/^(?:\.\.\/)+/, '/');
+    if (!p.startsWith('/')) p = '/' + p.replace(/^\/+/, '');
+    if (p === '/' || p === '') return 'href="/"';
+    const file = p.replace(/\?.*$/, '').split('/').pop().toLowerCase();
+    if (CAT_BY_FILE[file]) return `href="/c/${CAT_BY_FILE[file]}"`;
+    return `href="/m${p}"`;
+  });
   // E) don't let the Buy form post to their store
   h = h.replace(/<form([^>]*?)\saction\s*=\s*"[^"]*"/gi, '<form$1 action="javascript:void(0)"');
   // F) <base> so ALL relative assets (images/, ../css/, js/) resolve through the
@@ -661,6 +702,8 @@ const CAT_PAGE = {
   die:'/WebStore/Die.html', eq:'/WebStore/equalizers.html', adapter:'/WebStore/adapters.html',
   psen:'/WebStore/RF-Smart-Power-Sensors.html', cable:'/WebStore/Cables.html', wg:'/WebStore/Waveguides.html',
 };
+// reverse lookup: lowercased page filename (e.g. "amplifiers.html") -> our /c/ code
+const CAT_BY_FILE = (() => { const m = {}; for (const code in CAT_PAGE) m[CAT_PAGE[code].split('/').pop().toLowerCase()] = code; return m; })();
 function mcPost(path, cookie) {
   return new Promise((resolve) => {
     const body = 'action%3AX.onPageLoad.ajax=';
@@ -943,8 +986,23 @@ app.post('/api/escalate', requirePasscode, async (req, res) => {
   }
 });
 
-// SPA / mirrored-home fallback (Vercel serves public/index.html statically for
-// "/" anyway; the Minny widget is inlined into that file at build time).
+// Homepage — serve a LIVE mirror of minicircuits.com (exact hero, New Products,
+// fonts, icons), links rewritten to stay on our domain + Minny injected. Falls
+// back to the static recreation if the live page can't be fetched.
+app.get('/', async (req, res) => {
+  res.set('Cache-Control', 'no-cache'); res.set('Content-Type', 'text/html; charset=utf-8');
+  try { const h = await mirrorHomepage(); if (h) return res.send(h); } catch (e) {}
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+// Generic page mirror for nav links (About, Tools, product landing pages, etc.).
+app.get(/^\/m\//, async (req, res) => {
+  const mcPath = req.originalUrl.replace(/^\/m/, '');
+  res.set('Cache-Control', 'no-cache'); res.set('Content-Type', 'text/html; charset=utf-8');
+  try { const h = await mirrorPage(mcPath); if (h) return res.send(h); } catch (e) {}
+  res.redirect('/');
+});
+
+// SPA / mirrored-home fallback.
 app.get('*', (req, res) => {
   res.set('Cache-Control', 'no-cache, must-revalidate');
   res.sendFile(path.join(__dirname, 'public', 'index.html'));

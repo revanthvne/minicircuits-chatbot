@@ -931,14 +931,22 @@ async function runChat(message, history = []) {
   // what it already gathered — guarantees a non-empty answer.
   if (!finalText) {
     try {
+      const nudge = 'Based on the catalog results above, give your answer NOW — recommend your best matching part numbers with their key specs (frequency, and whatever else the results show), and tell me I can click any part for live pricing and datasheets. If nothing matches, say so honestly and point me to apps@minicircuits.com. Do not call any more tools.';
+      const fm = messages.slice();
+      const last = fm[fm.length - 1];
+      if (last && last.role === 'user' && Array.isArray(last.content)) {
+        fm[fm.length - 1] = { role: 'user', content: [...last.content, { type: 'text', text: nudge }] };
+      } else {
+        fm.push({ role: 'user', content: nudge });
+      }
       const forced = await anthropic.messages.create({
-        model: MODEL, max_tokens: 1500, system: systemPrompt, tools: TOOLS,
-        tool_choice: { type: 'none' }, messages,
+        model: MODEL, max_tokens: 1500, system: systemPrompt, messages: fm,
       });
       usage.input += forced.usage.input_tokens;
       usage.output += forced.usage.output_tokens;
       finalText = forced.content.filter(c => c.type === 'text').map(c => c.text).join('\n').trim();
-    } catch (e) { /* leave finalText empty; handled below */ }
+      if (process.env.BENCH_DEBUG) console.error('FORCED stop=' + forced.stop_reason + ' textlen=' + finalText.length);
+    } catch (e) { if (process.env.BENCH_DEBUG) console.error('FORCED ERR:', e.status, e.message); }
   }
 
   let reply = finalText;

@@ -884,20 +884,34 @@ app.post('/api/chat', requirePasscode, async (req, res) => {
   }
 
   const systemPrompt = buildSystemPrompt();
+  // Cache the large system prompt so it isn't re-processed on every tool-loop
+  // turn / follow-up message — meaningful latency win, zero quality change.
+  const systemBlocks = [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }];
   const messages = [
     ...history.slice(-12).map(h => ({ role: h.role, content: h.content })),
     { role: 'user', content: message },
   ];
 
+  // Stream the answer back as newline-delimited JSON so the user sees text as
+  // it's written (much faster *perceived* response) instead of waiting for the
+  // entire reply. Works even if the platform buffers — the client parses
+  // whatever arrives and renders the final "done" payload.
+  res.setHeader('Content-Type', 'application/x-ndjson; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
+  res.setHeader('X-Accel-Buffering', 'no');
+  const emit = (o) => { try { res.write(JSON.stringify(o) + '\n'); if (res.flush) res.flush(); } catch (e) {} };
+
   try {
     let usage = { input: 0, output: 0 };
     let finalText = '';
 
-    // Tool-use loop: let Claude search the catalog, then answer.
+    // Tool-use loop: let Claude search the catalog, then answer — streaming text.
     for (let turn = 0; turn < 4; turn++) {
-      const response = await anthropic.messages.create({
-        model: MODEL, max_tokens: 1500, system: systemPrompt, tools: TOOLS, messages,
+      const stream = anthropic.messages.stream({
+        model: MODEL, max_tokens: 1500, system: systemBlocks, tools: TOOLS, messages,
       });
+      stream.on('text', (delta) => emit({ t: 'delta', v: delta }));
+      const response = await stream.finalMessage();
       usage.input += response.usage.input_tokens;
       usage.output += response.usage.output_tokens;
 
@@ -906,6 +920,7 @@ app.post('/api/chat', requirePasscode, async (req, res) => {
 
       if (response.stop_reason !== 'tool_use' || toolUses.length === 0) break;
 
+      emit({ t: 'reset' }); // this turn went to tools — clear any streamed preamble
       messages.push({ role: 'assistant', content: response.content });
       const toolResults = await Promise.all(toolUses.map(async (tu) => ({
         type: 'tool_result',
@@ -949,13 +964,16 @@ app.post('/api/chat', requirePasscode, async (req, res) => {
     reply = reply.replace(/\]\((?:https?:\/\/[^)\s]*minicircuits\.com)?(?:\.\.\/|\/)?(?:WebStore\/)?(?:dashboard|modelSearch)\.html\?model=([^)\s&]+)[^)\s]*\)/gi,
       (m, model) => `](/p/${model})`);
 
-    res.json({ reply, products: mentionedProducts.slice(0, 4), suggestions, tokens: usage });
+    emit({ t: 'done', reply, products: mentionedProducts.slice(0, 4), suggestions, tokens: usage });
+    res.end();
 
   } catch (err) {
     console.error('Claude API error:', err.status, err.message);
-    if (err.status === 401) return res.status(401).json({ error: 'Invalid API key', message: 'Your ANTHROPIC_API_KEY is invalid.' });
-    if (err.status === 529) return res.status(503).json({ error: 'API overloaded', message: 'Claude is very busy right now! Try again in a moment. 🧽' });
-    res.status(500).json({ error: 'API error', message: err.message });
+    const msg = err.status === 529 ? 'Claude is very busy right now — try again in a moment.'
+      : err.status === 401 ? 'Server API key issue — please contact the site owner.'
+      : 'Minny hit an error. Please try again.';
+    emit({ t: 'error', message: msg });
+    res.end();
   }
 });
 

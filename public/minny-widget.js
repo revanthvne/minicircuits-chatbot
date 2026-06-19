@@ -119,20 +119,37 @@
 
   function chatFetch(message){ return fetch(ORIGIN+'/api/chat',{method:'POST',headers:{'Content-Type':'application/json','x-access-code':ACCESS},body:JSON.stringify({message:message,history:history.slice(-12)})}); }
 
+  var TYPING='<span class="mn-typing"><span></span><span></span><span></span></span>';
+  function renderDone(bub,d){ var reply=(d.reply||'').replace(/\[NEEDS_HUMAN\]/g,'').trim();
+    var html=md(reply); if(d.products&&d.products.length){ html+='<div style="margin-top:8px">'+d.products.slice(0,4).map(card).join('')+'</div>'; }
+    bub.innerHTML=html||'<span style="color:#5b6b85">…</span>'; history.push({role:'assistant',content:reply}); msgs.scrollTop=msgs.scrollHeight;
+    if(d.suggestions&&d.suggestions.length) chips(d.suggestions); }
+
   function send(message){ message=(message||'').trim(); if(!message) return;
     row(message,true); history.push({role:'user',content:message});
-    var t=document.createElement('div'); t.className='mn-row'; t.innerHTML=AV+'<div class="mn-bub bot"><span class="mn-typing"><span></span><span></span><span></span></span></div>'; msgs.appendChild(t); msgs.scrollTop=msgs.scrollHeight;
+    var t=document.createElement('div'); t.className='mn-row'; t.innerHTML=AV+'<div class="mn-bub bot">'+TYPING+'</div>'; msgs.appendChild(t); msgs.scrollTop=msgs.scrollHeight;
+    var bub=t.querySelector('.mn-bub'); var acc='', streaming=false, done=false;
+    function delta(v){ if(!streaming){streaming=true; bub.textContent='';} acc+=v; bub.textContent=acc; msgs.scrollTop=msgs.scrollHeight; }
+    function reset(){ acc=''; streaming=false; bub.innerHTML=TYPING; }
+    function fail(m){ bub.innerHTML='<span style="color:#c0392b">⚠️ '+esc(m||'Something went wrong.')+'</span>'; }
+    function handle(o){ if(!o||!o.t)return; if(o.t==='delta')delta(o.v); else if(o.t==='reset')reset(); else if(o.t==='done'){done=true;renderDone(bub,o);} else if(o.t==='error')fail(o.message); }
+    function readStream(resp){
+      if(!resp.body||!resp.body.getReader){ return resp.text().then(function(txt){ var ls=txt.trim().split('\n'); for(var i=ls.length-1;i>=0;i--){try{var o=JSON.parse(ls[i]);if(o.t==='done'){renderDone(bub,o);return;}}catch(e){}} if(!done)fail('Something went wrong.'); }); }
+      var reader=resp.body.getReader(), dec=new TextDecoder(), buf='';
+      return reader.read().then(function step(r){
+        if(r.done){ if(buf.trim()){try{handle(JSON.parse(buf));}catch(e){}} return; }
+        buf+=dec.decode(r.value,{stream:true}); var parts=buf.split('\n'); buf=parts.pop();
+        for(var i=0;i<parts.length;i++){ var ln=parts[i].trim(); if(ln){try{handle(JSON.parse(ln));}catch(e){}} }
+        return reader.read().then(step);
+      });
+    }
     chatFetch(message).then(function(resp){
       if(resp.status===401){ ACCESS=(window.prompt('🔒 This assistant is passcode-protected. Enter the access passcode:')||'').trim(); sessionStorage.setItem('mc_ac',ACCESS); return chatFetch(message); }
       return resp;
-    }).then(function(resp){ return resp.json().then(function(d){return {ok:resp.ok,status:resp.status,d:d};}); })
-    .then(function(o){ t.remove();
-      if(!o.ok){ row('<span style="color:#c0392b">⚠️ '+(o.status===401?'Incorrect passcode — reload and try again.':esc((o.d&&o.d.message)||'Something went wrong.'))+'</span>'); return; }
-      var d=o.d; var reply=(d.reply||'').replace(/\[NEEDS_HUMAN\]/g,'').trim();
-      var html=md(reply); if(d.products&&d.products.length){ html+='<div style="margin-top:8px">'+d.products.slice(0,4).map(card).join('')+'</div>'; }
-      row(html,false); history.push({role:'assistant',content:reply});
-      if(d.suggestions&&d.suggestions.length) chips(d.suggestions);
-    }).catch(function(){ t.remove(); row('<span style="color:#c0392b">⚠️ Minny is offline right now.</span>'); });
+    }).then(function(resp){
+      if(!resp.ok){ return resp.json().then(function(d){ fail((d&&d.message)||(resp.status===401?'Incorrect passcode — reload and try again.':'Something went wrong.')); }).catch(function(){ fail('Something went wrong.'); }); }
+      return readStream(resp);
+    }).catch(function(){ if(!done&&!streaming)fail('Minny is offline right now.'); });
   }
   window.__minnySend=function(m){ openPanel(); send(m); };
 

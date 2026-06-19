@@ -29,9 +29,15 @@
   #minny-fab .b{position:absolute;top:-3px;right:-3px;background:#ff9100;color:#fff;border-radius:50%;width:20px;height:20px;font:700 11px Arial;display:flex;align-items:center;justify-content:center;border:2px solid #fff}\
   #minny-panel{position:fixed;right:22px;bottom:96px;width:390px;max-width:calc(100vw - 28px);height:600px;max-height:calc(100vh - 120px);background:#fff;border-radius:14px;box-shadow:0 16px 50px rgba(0,0,0,.32);z-index:2147483000;display:none;flex-direction:column;overflow:hidden;font-family:"Roboto Condensed",Arial,sans-serif}\
   #minny-panel.open{display:flex}\
+  #minny-panel.max{width:min(1040px,calc(100vw - 32px));height:calc(100vh - 120px)}\
+  #minny-panel{transition:width .18s ease,height .18s ease}\
   #minny-hd{background:linear-gradient(135deg,#253b98,#00183c);padding:13px 15px;display:flex;align-items:center;gap:11px;border-bottom:3px solid #ff9100}\
   #minny-hd .t{color:#fff;font-weight:700;font-size:15px;font-family:"Cairo",sans-serif}#minny-hd .s{color:#9fb6e6;font-size:11px}\
-  #minny-hd .x{margin-left:auto;color:#fff;cursor:pointer;font-size:20px;opacity:.85;background:none;border:none}\
+  #minny-hd .mx{margin-left:auto;color:#fff;cursor:pointer;opacity:.85;background:none;border:none;padding:2px;display:flex;align-items:center}\
+  #minny-hd .x{color:#fff;cursor:pointer;font-size:20px;opacity:.85;background:none;border:none;padding:0 2px}\
+  #minny-hd .mx:hover,#minny-hd .x:hover{opacity:1}\
+  #minny-hd .mx .i-min{display:none}\
+  #minny-panel.max #minny-hd .mx .i-max{display:none}#minny-panel.max #minny-hd .mx .i-min{display:block}\
   #minny-msgs{flex:1;overflow-y:auto;padding:14px;background:#f4f6fb}\
   .mn-row{display:flex;gap:9px;margin-bottom:12px;align-items:flex-start}.mn-row.u{justify-content:flex-end}\
   .mn-bub{max-width:80%;padding:9px 12px;border-radius:13px;font-size:13.5px;line-height:1.5;color:#1a2332}\
@@ -64,7 +70,12 @@
 
   var panel = document.createElement('div'); panel.id = 'minny-panel';
   panel.innerHTML =
-    '<div id="minny-hd">' + AV + '<div><div class="t">Minny</div><div class="s">Mini-Circuits RF Assistant · online</div></div><button class="x" title="Close">✕</button></div>' +
+    '<div id="minny-hd">' + AV + '<div><div class="t">Minny</div><div class="s">Mini-Circuits RF Assistant · online</div></div>' +
+      '<button class="mx" title="Maximize">' +
+        '<svg class="i-max" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>' +
+        '<svg class="i-min" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3"/><path d="M21 8h-3a2 2 0 0 1-2-2V3"/><path d="M3 16h3a2 2 0 0 1 2 2v3"/><path d="M16 21v-3a2 2 0 0 1 2-2h3"/></svg>' +
+      '</button>' +
+      '<button class="x" title="Close">✕</button></div>' +
     '<div id="minny-msgs"></div>' +
     '<div id="minny-foot"><textarea id="minny-in" rows="1" placeholder="Ask me anything RF! ⚡"></textarea><button id="minny-send">➤</button></div>';
   document.body.appendChild(panel);
@@ -133,6 +144,11 @@
   function closePanel(){ open=false; panel.classList.remove('open'); }
   fab.addEventListener('click',function(){ open?closePanel():openPanel(); });
   panel.querySelector('.x').addEventListener('click',closePanel);
+  // Maximize / restore the panel (remembers the choice across sessions).
+  var mxBtn=panel.querySelector('.mx');
+  function applyMax(on){ panel.classList.toggle('max',on); mxBtn.title=on?'Restore size':'Maximize'; try{localStorage.setItem('mc_max',on?'1':'0');}catch(e){} setTimeout(function(){msgs.scrollTop=msgs.scrollHeight;},80); }
+  try{ if(localStorage.getItem('mc_max')==='1') applyMax(true); }catch(e){}
+  mxBtn.addEventListener('click',function(){ applyMax(!panel.classList.contains('max')); });
   input.addEventListener('keydown',function(e){ if(e.key==='Enter'&&!e.shiftKey){e.preventDefault(); var v=input.value; input.value=''; input.style.height='auto'; send(v);} });
   input.addEventListener('input',function(){ input.style.height='auto'; input.style.height=Math.min(input.scrollHeight,90)+'px'; });
   panel.querySelector('#minny-send').addEventListener('click',function(){ var v=input.value; input.value=''; input.style.height='auto'; send(v); });

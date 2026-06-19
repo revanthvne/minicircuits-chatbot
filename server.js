@@ -992,7 +992,7 @@ app.post('/api/escalate', requirePasscode, async (req, res) => {
 app.get('/', async (req, res) => {
   res.set('Cache-Control', 'no-cache'); res.set('Content-Type', 'text/html; charset=utf-8');
   try { const h = await mirrorHomepage(); if (h) return res.send(h); } catch (e) {}
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  res.sendFile(path.join(__dirname, 'views', 'index.html'));
 });
 // Generic page mirror for nav links (About, Tools, product landing pages, etc.).
 app.get(/^\/m\//, async (req, res) => {
@@ -1005,7 +1005,7 @@ app.get(/^\/m\//, async (req, res) => {
 // SPA / mirrored-home fallback.
 app.get('*', (req, res) => {
   res.set('Cache-Control', 'no-cache, must-revalidate');
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  res.sendFile(path.join(__dirname, 'views', 'index.html'));
 });
 
 // Only start a listener when run directly (local dev). On Vercel the app is

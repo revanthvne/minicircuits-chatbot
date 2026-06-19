@@ -926,6 +926,21 @@ async function runChat(message, history = []) {
     messages.push({ role: 'user', content: toolResults });
   }
 
+  // Safety net: if the model used up all tool turns without writing an answer
+  // (it kept fetching details), force ONE tool-free turn so it MUST reply from
+  // what it already gathered — guarantees a non-empty answer.
+  if (!finalText) {
+    try {
+      const forced = await anthropic.messages.create({
+        model: MODEL, max_tokens: 1500, system: systemPrompt, tools: TOOLS,
+        tool_choice: { type: 'none' }, messages,
+      });
+      usage.input += forced.usage.input_tokens;
+      usage.output += forced.usage.output_tokens;
+      finalText = forced.content.filter(c => c.type === 'text').map(c => c.text).join('\n').trim();
+    } catch (e) { /* leave finalText empty; handled below */ }
+  }
+
   let reply = finalText;
   const mentionedProducts = extractMentionedProducts(reply);
 

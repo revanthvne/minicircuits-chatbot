@@ -902,10 +902,18 @@ async function runChat(message, history = []) {
   let usage = { input: 0, output: 0 };
   let finalText = '';
 
+  // Optional prompt caching (OFF by default — set ENABLE_PROMPT_CACHE to turn on).
+  // Caches the large static system prompt so it isn't re-processed/re-billed on
+  // every tool-loop turn and follow-up — faster + cheaper, identical output.
+  // Gated so it cannot affect the live bot until verified with API credits.
+  const useCache = !!process.env.ENABLE_PROMPT_CACHE;
+  const sysParam = useCache ? [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }] : systemPrompt;
+  const reqOpts = useCache ? { headers: { 'anthropic-beta': 'prompt-caching-2024-07-31' } } : undefined;
+
   for (let turn = 0; turn < MAX_TOOL_TURNS; turn++) {
     const response = await anthropic.messages.create({
-      model: MODEL, max_tokens: 1500, system: systemPrompt, tools: TOOLS, messages,
-    });
+      model: MODEL, max_tokens: 1500, system: sysParam, tools: TOOLS, messages,
+    }, reqOpts);
     usage.input += response.usage.input_tokens;
     usage.output += response.usage.output_tokens;
 
@@ -940,8 +948,8 @@ async function runChat(message, history = []) {
         fm.push({ role: 'user', content: nudge });
       }
       const forced = await anthropic.messages.create({
-        model: MODEL, max_tokens: 1500, system: systemPrompt, messages: fm,
-      });
+        model: MODEL, max_tokens: 1500, system: sysParam, messages: fm,
+      }, reqOpts);
       usage.input += forced.usage.input_tokens;
       usage.output += forced.usage.output_tokens;
       finalText = forced.content.filter(c => c.type === 'text').map(c => c.text).join('\n').trim();

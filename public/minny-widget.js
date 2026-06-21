@@ -119,20 +119,24 @@
 
   function chatFetch(message){ return fetch(ORIGIN+'/api/chat',{method:'POST',headers:{'Content-Type':'application/json','x-access-code':ACCESS},body:JSON.stringify({message:message,history:history.slice(-12)})}); }
 
+  var STAGES=['Searching 15,000+ Mini-Circuits parts…','Checking specs & availability…','Reviewing datasheets…','Composing your answer…'];
   function send(message){ message=(message||'').trim(); if(!message) return;
     row(message,true); history.push({role:'user',content:message});
-    var t=document.createElement('div'); t.className='mn-row'; t.innerHTML=AV+'<div class="mn-bub bot"><span class="mn-typing"><span></span><span></span><span></span></span></div>'; msgs.appendChild(t); msgs.scrollTop=msgs.scrollHeight;
+    var t=document.createElement('div'); t.className='mn-row'; t.innerHTML=AV+'<div class="mn-bub bot"><span class="mn-typing"><span></span><span></span><span></span></span> <span class="mn-stat" style="color:#8b97ad;font-size:12px;font-style:italic"></span></div>'; msgs.appendChild(t); msgs.scrollTop=msgs.scrollHeight;
+    var statEl=t.querySelector('.mn-stat'), sIdx=0; if(statEl)statEl.textContent=STAGES[0];
+    var statTimer=setInterval(function(){ sIdx=Math.min(sIdx+1,STAGES.length-1); if(statEl)statEl.textContent=STAGES[sIdx]; },3000);
+    function stopStat(){ clearInterval(statTimer); }
     chatFetch(message).then(function(resp){
       if(resp.status===401){ ACCESS=(window.prompt('🔒 This assistant is passcode-protected. Enter the access passcode:')||'').trim(); sessionStorage.setItem('mc_ac',ACCESS); return chatFetch(message); }
       return resp;
     }).then(function(resp){ return resp.json().then(function(d){return {ok:resp.ok,status:resp.status,d:d};}); })
-    .then(function(o){ t.remove();
+    .then(function(o){ stopStat(); t.remove();
       if(!o.ok){ row('<span style="color:#c0392b">⚠️ '+(o.status===401?'Incorrect passcode — reload and try again.':esc((o.d&&o.d.message)||'Something went wrong.'))+'</span>'); return; }
       var d=o.d; var reply=(d.reply||'').replace(/\[NEEDS_HUMAN\]/g,'').trim();
       var html=md(reply); if(d.products&&d.products.length){ html+='<div style="margin-top:8px">'+d.products.slice(0,4).map(card).join('')+'</div>'; }
       row(html,false); history.push({role:'assistant',content:reply});
       if(d.suggestions&&d.suggestions.length) chips(d.suggestions);
-    }).catch(function(){ t.remove(); row('<span style="color:#c0392b">⚠️ Minny is offline right now.</span>'); });
+    }).catch(function(){ stopStat(); t.remove(); row('<span style="color:#c0392b">⚠️ Minny is offline right now.</span>'); });
   }
   window.__minnySend=function(m){ openPanel(); send(m); };
 

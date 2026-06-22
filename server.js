@@ -309,6 +309,18 @@ CHIPS:: option one :: option two :: option three
 These render as buttons the user can tap to answer. Rules: 2–5 chips, each under ~24 characters, plain text (no HTML/emoji), separated by " :: ". Always include a helpful catch-all like "Not sure" or "Just show all" when relevant. Do NOT add a CHIPS line to a pure recommendation/answer that asks nothing. Example for a balun impedance question:
 CHIPS:: 50Ω :: 75Ω :: Not sure
 
+PRIORITY PICKER — for product-recommendation / "find me a part" requests, instead of the plain fill-in template, end your message with one line, exactly:
+PICK:: param one :: param two :: param three :: …
+This renders a multi-select where the customer taps the specs they want to OPTIMIZE for, plus a fixed Package selector (SMT, Die, Connector, Plug-in, Rack) and an optional frequency box. List the 4–6 DECISIVE optimize-for parameters for THAT category, for example:
+• Amplifiers → PICK:: Gain :: Noise figure :: P1dB / OIP3 :: DC power :: Return loss
+• Filters → PICK:: Insertion loss :: Rejection :: Passband width :: Power handling :: Return loss
+• Mixers → PICK:: Conversion loss :: LO drive :: Isolation :: IP3
+• Attenuators → PICK:: Attenuation range :: Step size :: Accuracy :: Power handling :: Speed
+• Switches → PICK:: Insertion loss :: Isolation :: Switching speed :: Power handling
+• Splitters/Combiners → PICK:: Insertion loss :: Isolation :: Amplitude balance :: Power handling
+Use the parameters that genuinely matter for the requested category. Use PICK for product discovery; use CHIPS for simple either/or questions; never emit both on one message.
+When the customer replies with prioritized parameters (and/or a package), treat frequency / impedance / package as hard FILTERS, then RANK the shortlist by the chosen priorities: give the best pick for EACH chosen priority plus one all-round pick, and state the trade-off honestly (e.g. "Lowest NF: <X> (NF 0.6 dB, but higher Icc); Best linearity: <Y> (OIP3 +40 dBm)"). Rank straight from the search results — don't deep-fetch every candidate. Package maps to the part's interface field (SMT / Die / Connector / Plug-in / Rack).
+
 RF EXPERTISE (calculations — show work)
 • VSWR↔RL: RL(dB) = −20·log₁₀((VSWR−1)/(VSWR+1))
 • |Γ| = (VSWR−1)/(VSWR+1); Reflected power = |Γ|²×100%
@@ -968,6 +980,15 @@ async function runChat(message, history = []) {
     reply = reply.replace(chipM[0], '').trim();
   }
 
+  // 1b) Pull out a multi-select priority picker: "PICK:: param :: param :: …".
+  //     These are the category's optimize-for parameters the customer can rank by.
+  let pick = [];
+  const pickM = reply.match(/PICK::\s*(.+?)\s*$/m);
+  if (pickM) {
+    pick = pickM[1].split('::').map(x => x.trim()).filter(Boolean).slice(0, 8);
+    reply = reply.replace(pickM[0], '').trim();
+  }
+
   // 2) Auto-hyperlink every recommended part number to its product page on our
   //    domain (/p/<PN>), whether bolded as <strong>PN</strong> or **PN**.
   for (const p of mentionedProducts) {
@@ -985,7 +1006,7 @@ async function runChat(message, history = []) {
   reply = reply.replace(/\]\((?:https?:\/\/[^)\s]*minicircuits\.com)?(?:\.\.\/|\/)?(?:WebStore\/)?(?:dashboard|modelSearch)\.html\?model=([^)\s&]+)[^)\s]*\)/gi,
     (m, model) => `](/p/${model})`);
 
-  return { reply, products: mentionedProducts.slice(0, 4), suggestions, tokens: usage, rawText: finalText };
+  return { reply, products: mentionedProducts.slice(0, 4), suggestions, pick, tokens: usage, rawText: finalText };
 }
 
 app.post('/api/chat', requirePasscode, async (req, res) => {
@@ -996,7 +1017,7 @@ app.post('/api/chat', requirePasscode, async (req, res) => {
   }
   try {
     const out = await runChat(message, history);
-    res.json({ reply: out.reply, products: out.products, suggestions: out.suggestions, tokens: out.tokens });
+    res.json({ reply: out.reply, products: out.products, suggestions: out.suggestions, pick: out.pick, tokens: out.tokens });
   } catch (err) {
     console.error('Claude API error:', err.status, err.message);
     if (err.status === 401) return res.status(401).json({ error: 'Invalid API key', message: 'Your ANTHROPIC_API_KEY is invalid.' });

@@ -48,6 +48,15 @@
   .mn-chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px 39px}\
   .mn-chip{background:#eef2ff;color:#253b98;border:1.5px solid #cdd8f5;border-radius:13px;padding:5px 11px;font-size:11.5px;font-weight:600;cursor:pointer;font-family:inherit}\
   .mn-chip:hover{background:#253b98;color:#fff}\
+  .mn-pl{font-size:11px;color:#5b6b85;margin:9px 0 5px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}\
+  .mn-pg{display:flex;flex-wrap:wrap;gap:6px}\
+  .mn-tog{background:#eef2ff;color:#253b98;border:1.5px solid #cdd8f5;border-radius:13px;padding:5px 11px;font-size:11.5px;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:4px}\
+  .mn-tog:hover{border-color:#253b98}\
+  .mn-tog.on{background:#253b98;color:#fff;border-color:#253b98}\
+  .mn-pin{width:100%;padding:7px 11px;border:1.5px solid #d6dbe6;border-radius:8px;font-size:12.5px;font-family:inherit;outline:none}\
+  .mn-pin:focus{border-color:#ff9100}\
+  .mn-go{margin-top:11px;background:#ff9100;color:#fff;border:none;border-radius:8px;padding:9px 15px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px}\
+  .mn-go:hover{filter:brightness(1.05)}\
   .mn-card{border:1.5px solid #e2e8f0;border-radius:9px;padding:9px 11px;margin-top:7px;cursor:pointer;background:#fff;overflow:hidden}\
   .mn-card:hover{border-color:#ff9100}\
   .mn-card .pn{font-weight:800;color:#253b98;font-size:12.5px;font-family:"Courier New",monospace}\
@@ -117,6 +126,30 @@
     r.querySelectorAll('.mn-chip').forEach(function(b){b.addEventListener('click',function(){send(b.dataset.q);});});
     msgs.appendChild(r); msgs.scrollTop=msgs.scrollHeight; }
 
+  // Multi-select priority + package selector. Rendered when the reply carries a
+  // "pick" list (the optimize-for parameters for that product category).
+  var PKGS=['SMT','Die','Connector','Plug-in','Rack'];
+  function togs(id,arr){ return '<div class="mn-pg" id="'+id+'">'+arr.map(function(p){return '<button class="mn-tog" data-v="'+escA(p)+'">'+esc(p)+'</button>';}).join('')+'</div>'; }
+  function pickPanel(list){
+    var r=document.createElement('div'); r.className='mn-row';
+    r.innerHTML=AV+'<div class="mn-bub bot" style="max-width:96%">'
+      +'<div class="mn-pl">Optimize for — pick any</div>'+togs('mnP',list)
+      +'<div class="mn-pl">Package</div>'+togs('mnK',PKGS)
+      +'<div class="mn-pl">Must-haves (optional)</div>'
+      +'<input class="mn-pin" id="mnF" placeholder="Frequency, e.g. 2000–3000 MHz">'
+      +'<button class="mn-go" id="mnGo"><span>⚡</span> Find &amp; rank parts</button></div>';
+    msgs.appendChild(r); msgs.scrollTop=msgs.scrollHeight;
+    r.querySelectorAll('.mn-tog').forEach(function(b){b.addEventListener('click',function(){b.classList.toggle('on');});});
+    r.querySelector('#mnGo').addEventListener('click',function(){
+      var pr=[].map.call(r.querySelectorAll('#mnP .mn-tog.on'),function(b){return b.dataset.v;});
+      var pk=[].map.call(r.querySelectorAll('#mnK .mn-tog.on'),function(b){return b.dataset.v;});
+      var f=(r.querySelector('#mnF').value||'').trim();
+      var seg=[]; if(pr.length)seg.push('Prioritize (rank by): '+pr.join(', '));
+      if(pk.length)seg.push('Package: '+pk.join(' or ')); if(f)seg.push('Frequency: '+f);
+      send(seg.join('. ')||'Show me your best matches and rank them.');
+    });
+  }
+
   function chatFetch(message){ return fetch(ORIGIN+'/api/chat',{method:'POST',headers:{'Content-Type':'application/json','x-access-code':ACCESS},body:JSON.stringify({message:message,history:history.slice(-12)})}); }
 
   var STAGES=['Searching 15,000+ Mini-Circuits parts…','Checking specs & availability…','Reviewing datasheets…','Composing your answer…'];
@@ -135,7 +168,7 @@
       var d=o.d; var reply=(d.reply||'').replace(/\[NEEDS_HUMAN\]/g,'').trim();
       var html=md(reply); if(d.products&&d.products.length){ html+='<div style="margin-top:8px">'+d.products.slice(0,4).map(card).join('')+'</div>'; }
       row(html,false); history.push({role:'assistant',content:reply});
-      if(d.suggestions&&d.suggestions.length) chips(d.suggestions);
+      if(d.pick&&d.pick.length) pickPanel(d.pick); else if(d.suggestions&&d.suggestions.length) chips(d.suggestions);
     }).catch(function(){ stopStat(); t.remove(); row('<span style="color:#c0392b">⚠️ Minny is offline right now.</span>'); });
   }
   window.__minnySend=function(m){ openPanel(); send(m); };

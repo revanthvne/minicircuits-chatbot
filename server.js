@@ -18,7 +18,23 @@ const nodemailer = require('nodemailer');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
-const MODEL = 'claude-sonnet-4-6';
+const MODEL = 'claude-sonnet-4-6';            // advanced reasoning (default for everything)
+const MODEL_FAST = 'claude-haiku-4-5-20251001'; // faster/cheaper — used ONLY for simple conceptual Q's when routing is on
+
+// Complexity router. Conservative by design: ONLY clearly conceptual / educational
+// questions (no part numbers, no spec asks, no recommendations, no troubleshooting)
+// go to the fast model. Everything else — i.e. anything where accuracy matters —
+// stays on Sonnet. Default route is 'advanced' so we never trade accuracy by mistake.
+function classifyComplexity(msg) {
+  const raw = String(msg || '');
+  const m = raw.toLowerCase();
+  if (/\b[a-z]{2,6}[- ]?\d{2,}[a-z0-9.\-+]*\b/i.test(raw)) return 'advanced';        // names a part number
+  if (/\b(need|looking for|recommend|suggest|find me|find a|which|best|select|choose|drop-?in|replace|replacement|alternative|cascade|design|match|spec'?d|options?)\b/.test(m)) return 'advanced'; // product discovery
+  if (/\b(not working|isn'?t|won'?t|doesn'?t|broken|burnt|burned|smoked|too hot|overheat|fail|failing|error|spike|leak|leaking|oscillat|wrong|weird|stuck|scratchy|terrible|problem|troublesho)\b/.test(m)) return 'advanced'; // troubleshooting
+  if (/\b(exact|precise|settling time|group delay|phase noise|oip3|iip3|\bip3\b|p1db|derat|uncertainty|tolerance|hot-?switch|at \d|vs\.? temp|\bdbm\b|\bghz\b|\bmhz\b|ohm|impedance|max(imum)? (input|dc|current|power)|fry|saturat|torque|lifespan|cycles|eccn|rohs|reach|svhc|nist|calibrat|certificat|traceable|mating|hermetic|spec(ified|ification)?)\b/.test(m)) return 'advanced'; // specific numbers/specs
+  if (/^\s*(what is|what'?s|what are|whats|why|how do|how does|how can|what does|can i|could i|do you|is there|explain|difference between|tell me about the difference)\b/.test(m)) return 'simple'; // conceptual/educational
+  return 'advanced'; // default: strongest model, never sacrifice accuracy
+}
 
 // Optional shared passcode to protect the public deployment (set ACCESS_PASSCODE
 // in the environment). When unset (e.g. local dev), the gate is disabled.
@@ -902,9 +918,51 @@ h1{font-size:34px;color:#0b1a3a;letter-spacing:-.5px}.sub{font-size:22px;color:#
 // caused empty replies on parts-heavy queries).
 const MAX_TOOL_TURNS = 6;
 
+// ── Semantic cache (OFF by default — set ENABLE_SEMANTIC_CACHE to turn on) ────
+// Conservative by design: only caches STABLE conceptual answers (no number in
+// the question, no specific products surfaced). Spec/part queries are NEVER
+// cached or fuzzy-matched, so a stale figure can never be served. This keeps
+// "no accuracy loss / no hallucination" intact even with caching on.
+const semCache = new Map();
+const SEM_TTL = 6 * 3600 * 1000;
+function normQ(s) { return String(s || '').toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim(); }
+function semGet(msg) {
+  if (!process.env.ENABLE_SEMANTIC_CACHE) return null;
+  const k = normQ(msg), now = Date.now();
+  const direct = semCache.get(k);
+  if (direct && now - direct.at < SEM_TTL) return direct;
+  if (/\d/.test(k)) return null;                                  // never fuzzy-match a question with a number
+  const words = new Set(k.split(' ').filter(w => w.length > 2));
+  if (!words.size) return null;
+  for (const [ck, v] of semCache) {
+    if (now - v.at > SEM_TTL || /\d/.test(ck)) continue;
+    const cw = new Set(ck.split(' ').filter(w => w.length > 2));
+    let inter = 0; words.forEach(w => { if (cw.has(w)) inter++; });
+    const uni = new Set([...words, ...cw]).size || 1;
+    if (inter / uni >= 0.82) return v;                            // very high overlap only
+  }
+  return null;
+}
+function semSet(msg, out) {
+  if (!process.env.ENABLE_SEMANTIC_CACHE) return;
+  const k = normQ(msg);
+  if (/\d/.test(k)) return;                                       // numeric question -> not stable
+  if (out.products && out.products.length) return;                // part-specific -> never cache
+  if (!out.reply || out.reply.length < 20) return;
+  semCache.set(k, { reply: out.reply, rawText: out.rawText, products: [], suggestions: out.suggestions || [], pick: out.pick || [], at: Date.now() });
+}
+
 // Core chat logic (tool-use loop + post-processing). Reusable by the API route
 // and offline benchmarking. Returns { reply, products, suggestions, tokens, rawText }.
 async function runChat(message, history = []) {
+  // Semantic cache: instant, free return for a repeated stable conceptual question.
+  const cached = (!history || !history.length) ? semGet(message) : null;
+  if (cached) return { reply: cached.reply, products: [], suggestions: cached.suggestions, pick: cached.pick, tokens: { input: 0, output: 0, cached: true }, rawText: cached.rawText };
+
+  // Model routing: simple/conceptual -> fast model; anything where accuracy
+  // matters (parts, specs, recommendations, troubleshooting) -> Sonnet.
+  const model = (process.env.ENABLE_MODEL_ROUTING && classifyComplexity(message) === 'simple') ? MODEL_FAST : MODEL;
+
   const systemPrompt = buildSystemPrompt();
   const messages = [
     ...history.slice(-12).map(h => ({ role: h.role, content: h.content })),
@@ -924,7 +982,7 @@ async function runChat(message, history = []) {
 
   for (let turn = 0; turn < MAX_TOOL_TURNS; turn++) {
     const response = await anthropic.messages.create({
-      model: MODEL, max_tokens: 1500, system: sysParam, tools: TOOLS, messages,
+      model, max_tokens: 1500, system: sysParam, tools: TOOLS, messages,
     }, reqOpts);
     usage.input += response.usage.input_tokens;
     usage.output += response.usage.output_tokens;
@@ -960,7 +1018,7 @@ async function runChat(message, history = []) {
         fm.push({ role: 'user', content: nudge });
       }
       const forced = await anthropic.messages.create({
-        model: MODEL, max_tokens: 1500, system: sysParam, messages: fm,
+        model, max_tokens: 1500, system: sysParam, messages: fm,
       }, reqOpts);
       usage.input += forced.usage.input_tokens;
       usage.output += forced.usage.output_tokens;
@@ -1006,7 +1064,9 @@ async function runChat(message, history = []) {
   reply = reply.replace(/\]\((?:https?:\/\/[^)\s]*minicircuits\.com)?(?:\.\.\/|\/)?(?:WebStore\/)?(?:dashboard|modelSearch)\.html\?model=([^)\s&]+)[^)\s]*\)/gi,
     (m, model) => `](/p/${model})`);
 
-  return { reply, products: mentionedProducts.slice(0, 4), suggestions, pick, tokens: usage, rawText: finalText };
+  const result = { reply, products: mentionedProducts.slice(0, 4), suggestions, pick, tokens: usage, rawText: finalText };
+  semSet(message, result);
+  return result;
 }
 
 app.post('/api/chat', requirePasscode, async (req, res) => {
@@ -1095,3 +1155,4 @@ if (require.main === module) {
 
 module.exports = app;
 module.exports.runChat = runChat;
+module.exports.classifyComplexity = classifyComplexity;

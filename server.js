@@ -241,7 +241,8 @@ LIVE PRODUCT DETAILS — pricing, stock & files
 When the user asks about a SPECIFIC part (its price, stock/availability, datasheet, S-parameters, or "tell me about <PN>"), call get_product_details with that part number. It returns LIVE data from minicircuits.com. Then present:
 • Pricing & Availability: render the quantity/unit-price tiers as a small HTML <table> (NOT a markdown table — markdown tables don't render here). Show the current stock exactly as returned (e.g. "more than 1,000"). If price_tiers/stock are absent, say pricing isn't published online and offer escalation — never invent numbers.
 • Data, Drawings & Downloads: list the returned files as HTML links — Datasheet, View Data, View Graphs, S-Parameters, Case Style drawing, PCB Layout, Eval Board, etc. Use the exact href values from the tool (e.g. <a href="URL" target="_blank">Datasheet (PDF)</a>).
-Only state pricing/stock/files that the tool actually returned.
+• Specs: get_product_details also returns a "specs" object parsed live from the product page (any of: frequency, insertion_loss, isolation, return_loss, vswr, gain, noise_figure, p1db, oip3, conversion_loss, lo_drive, power, attenuation, impedance, connector, size, case_style). When the user asks about insertion loss, return loss, isolation, gain, size/dimensions, connector, power handling, etc., ANSWER from specs and quote the value exactly (e.g. "Insertion loss: 0.9 dB typ."). These are the headline/typical published values — for exact values across frequency or temperature, or for any spec NOT present in specs, do not guess: point to the Datasheet / View Graphs and to apps@minicircuits.com.
+Only state pricing/stock/files/specs that the tool actually returned.
 
 MISSING EXACT SPEC — be useful, still don't guess: when the user asks for a precise value you don't have in the tool data (e.g. OIP3 at 2 GHz, NF at 85°C, group delay, settling time, phase noise at a given offset, derating curves), do BOTH of these:
   (1) Still call get_product_details for that part and SURFACE its Datasheet, View Data, and View Graphs links — that is exactly where the typical values and the performance-vs-frequency / vs-temperature curves live, so the user can read the real figure straight from the published data. Tell them which file to open and what to look for (e.g. "the IP3 vs. Frequency table and the OIP3 vs. Temperature graph in View Graphs").
@@ -488,6 +489,40 @@ async function getMcCookie() {
   return mcCookie;
 }
 const productCache = new Map();
+// Parse the headline/published specs from a product dashboard page so the bot
+// can answer "what's the insertion loss / return loss / size / gain…" live for
+// ANY part. Only returns values actually present on the page (anti-hallucination).
+function parseSpecs(html) {
+  const txt = html.replace(/<[^>]+>/g, ' ').replace(/&deg;/gi, '°').replace(/&[a-z#0-9]+;/gi, ' ').replace(/\s+/g, ' ');
+  const sp = {};
+  const grab = (re, key, suf) => { if (sp[key] != null) return; const m = txt.match(re); if (m) sp[key] = (m[1] + (suf || '')).trim(); };
+  // frequency range
+  let f = txt.match(/\b(\d[\d,.]*)\s*to\s*(\d[\d,.]*)\s*(GHz|MHz)\b/i);
+  if (f) { const u = /ghz/i.test(f[3]) ? 'GHz' : 'MHz'; sp.frequency = `${f[1]} to ${f[2]} ${u}`; }
+  else { f = txt.match(/\bDC\s*to\s*(\d[\d,.]*)\s*(GHz|MHz)\b/i); if (f) sp.frequency = `DC to ${f[1]} ${/ghz/i.test(f[2])?'GHz':'MHz'}`; }
+  grab(/insertion loss[,:]?\s*([\d.]+)\s*dB/i, 'insertion_loss', ' dB');
+  grab(/isolation[,:]?\s*([\d.]+)\s*dB/i, 'isolation', ' dB');
+  grab(/return loss[,:]?\s*([\d.]+)\s*dB/i, 'return_loss', ' dB');
+  grab(/VSWR[,:]?\s*([\d.]+)\s*[:]?\s*1?/i, 'vswr', ':1');
+  grab(/(?:^|[^a-z])gain[,:]?\s*([\d.]+)\s*dB/i, 'gain', ' dB');
+  grab(/(?:noise figure|(?:^|[^a-z])NF)[,:]?\s*([\d.]+)\s*dB/i, 'noise_figure', ' dB');
+  grab(/P1\s*dB[,:]?\s*\+?([\d.]+)\s*dBm/i, 'p1db', ' dBm');
+  grab(/(?:OIP3|IP3)[,:]?\s*\+?([\d.]+)\s*dBm/i, 'oip3', ' dBm');
+  grab(/conversion loss[,:]?\s*([\d.]+)\s*dB/i, 'conversion_loss', ' dB');
+  grab(/LO\s*(?:drive|power)[,:]?\s*\+?([\d.]+)\s*dBm/i, 'lo_drive', ' dBm');
+  grab(/(?:up to|power handling[,:]?|high power[,:]?\s*up to)\s*([\d.]+)\s*W\b/i, 'power', ' W');
+  grab(/amplitude (?:un)?balance[,:]?\s*([\d.]+)\s*dB/i, 'amplitude_balance', ' dB');
+  grab(/phase (?:un)?balance[,:]?\s*([\d.]+)\s*°?/i, 'phase_balance', '°');
+  grab(/attenuation[,:]?\s*([\d.]+)\s*dB/i, 'attenuation', ' dB');
+  if (/\b75\s*(ohm|Ω)/i.test(txt)) sp.impedance = '75 Ω'; else if (/\b50\s*(ohm|Ω)/i.test(txt)) sp.impedance = '50 Ω';
+  const conn = txt.match(/\b(SMA|N-?Type|2\.92\s*mm|3\.5\s*mm|2\.4\s*mm|1\.85\s*mm|BNC|TNC|SMP|QMA|F-?Type|MMCX|MCX)\b\s*(?:female|male|\(f\)|\(m\))?\s*connector/i);
+  if (conn) sp.connector = conn[1].replace(/\s+/g, '');
+  const dim = txt.match(/(\d[\d.]*\s*[x×]\s*\d[\d.]*\s*[x×]\s*\d[\d.]*)\s*(?:in|inch|"|mm|cm)?/i) || txt.match(/(\d[\d.]*\s*[x×]\s*\d[\d.]*)\s*(?:mm|in|inch|")/i);
+  if (dim) sp.size = dim[1].replace(/\s+/g, ' ');
+  const cs = txt.match(/CASE STYLE[:\s]*([A-Z]{1,4}[0-9][A-Z0-9\-]*)/); if (cs && !/search/i.test(cs[1])) sp.case_style = cs[1];
+  return sp;
+}
+
 async function getProductDetails(pn) {
   pn = String(pn || '').trim();
   if (!pn) return { found: false };
@@ -517,6 +552,8 @@ async function getProductDetails(pn) {
     files.push({ label, href: '/dl?u=' + encodeURIComponent(href) });
   }
   if (files.length) data.files = files.slice(0, 16);
+  const specs = parseSpecs(html);
+  if (Object.keys(specs).length) data.specs = specs;
   productCache.set(pn, { data, at: Date.now() });
   return data;
 }
@@ -1163,3 +1200,5 @@ module.exports.classifyComplexity = classifyComplexity;
 module.exports.searchCatalog = searchCatalog;
 module.exports.normalize = normalize;
 module.exports.deriveFreq = deriveFreq;
+module.exports.getProductDetails = getProductDetails;
+module.exports.parseSpecs = parseSpecs;

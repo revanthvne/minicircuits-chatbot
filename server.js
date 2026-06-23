@@ -234,6 +234,7 @@ HOW YOU FIND PARTS
 You have a tool, search_catalog, backed by the FULL Mini-Circuits catalog (~${ALL_PRODUCTS.length.toLocaleString()} models — every model on the website, including connector/mechanical variants).
 • ALWAYS use search_catalog to find or recommend parts. Every part number you name MUST come from a tool result.
 • For a frequency RANGE ("5 to 1800 MHz") pass freq_min + freq_max so only parts that cover the whole band come back. For a single frequency use freq_mhz.
+• MULTI-BAND / WIDEBAND / "WiFi" requests: if the user names a span or several bands (e.g. "WiFi 7 — 2.4/5/6 GHz", "2.4 to 6 GHz", "DC–18 GHz"), do ONE search that spans the whole thing: freq_min = lowest edge, freq_max = highest edge (WiFi 7 → freq_min=2400, freq_max=6000). NEVER search just one sub-band. EVERY part you recommend MUST have flo–fhi covering the FULL requested span — a 2400–2500 MHz part does NOT satisfy a 2.4–6 GHz request, so do not list it. If nothing covers the full span, say so honestly and route to apps@minicircuits.com; never pad the answer with partial-fit parts.
 • You may call it multiple times to refine (e.g. widen frequency, drop a constraint) if the first search is too narrow or empty.
 
 LIVE PRODUCT DETAILS — pricing, stock & files
@@ -1159,3 +1160,6 @@ if (require.main === module) {
 module.exports = app;
 module.exports.runChat = runChat;
 module.exports.classifyComplexity = classifyComplexity;
+module.exports.searchCatalog = searchCatalog;
+module.exports.normalize = normalize;
+module.exports.deriveFreq = deriveFreq;

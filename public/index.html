@@ -1,0 +1,1240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mini-Circuits — RF & Microwave Components</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --mc-orange:#F47920;
+  --mc-navy:#003087;
+  --mc-dark:#1a1a2e;
+  --mc-gray:#58595B;
+  --mc-lgray:#F5F5F5;
+  --mc-border:#DEDEDE;
+  --mc-teal:#00A651;
+  --white:#FFFFFF;
+  --text:#333333;
+}
+body{font-family:'Segoe UI',Arial,sans-serif;color:var(--text);background:#fff;overflow-x:hidden}
+a{text-decoration:none;color:inherit}
+img{max-width:100%}
+
+/* ── COOKIE BAR ─────────────────────────────────────── */
+.cookie-bar{background:#1a2744;color:#d0d8e8;font-size:12px;padding:8px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.cookie-bar a{color:#F47920;text-decoration:underline}
+.cookie-close{background:none;border:1px solid #4a5a7a;color:#d0d8e8;border-radius:3px;padding:3px 10px;cursor:pointer;font-size:11px;transition:background .15s}
+.cookie-close:hover{background:#2e3e60}
+
+/* ── HEADER ─────────────────────────────────────────── */
+.main-header{background:#fff;border-bottom:1px solid #dde2ea;position:relative;overflow:hidden}
+.header-inner{max-width:1280px;margin:0 auto;padding:10px 20px;display:flex;align-items:center;gap:18px;position:relative;z-index:2}
+
+/* circuit-board pattern on right */
+.main-header::after{
+  content:'';position:absolute;right:0;top:0;width:380px;height:100%;
+  background-image:
+    linear-gradient(90deg,#e8edf5 1px,transparent 1px),
+    linear-gradient(0deg,#e8edf5 1px,transparent 1px);
+  background-size:22px 22px;
+  mask-image:linear-gradient(to left,rgba(0,0,0,.12) 0%,transparent 100%);
+  -webkit-mask-image:linear-gradient(to left,rgba(0,0,0,.12) 0%,transparent 100%);
+  pointer-events:none;
+}
+
+/* Logo */
+.mc-logo{display:flex;align-items:center;gap:9px;flex-shrink:0;cursor:pointer;text-decoration:none}
+.mc-logo-icon{width:46px;height:46px;background:#003087;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.mc-logo-text{line-height:1.1}
+.mc-logo-text .brand{font-size:19px;font-weight:900;color:#003087;letter-spacing:-0.5px}
+.mc-logo-text .brand span{color:#F47920}
+.mc-logo-text .sub{font-size:9px;color:#58595B;letter-spacing:.5px;text-transform:uppercase}
+
+/* Dual search stack */
+.header-search-stack{display:flex;flex-direction:column;gap:5px;flex:1;max-width:480px;margin-left:auto}
+.search-row{display:flex;align-items:center;gap:0;position:relative}
+.search-row input{width:100%;border:1.5px solid #ccd2dc;border-radius:3px 0 0 3px;padding:7px 12px;font-size:12.5px;outline:none;background:#fafbfc;color:#333;transition:border-color .15s}
+.search-row input:focus{border-color:#003087;background:#fff}
+.search-row input::placeholder{color:#9aa3b0}
+.search-row .search-lbl{position:absolute;top:-9px;left:6px;font-size:10px;color:#8898aa;background:#fff;padding:0 3px;pointer-events:none}
+.srch-btn{background:#003087;border:none;color:#fff;padding:7px 13px;cursor:pointer;border-radius:0 3px 3px 0;font-size:11px;font-weight:600;white-space:nowrap;transition:background .15s;flex-shrink:0}
+.srch-btn:hover{background:#002070}
+.srch-btn.orange{background:#F47920}
+.srch-btn.orange:hover{background:#d96500}
+
+/* Header right zone */
+.header-right{display:flex;align-items:center;gap:16px;flex-shrink:0}
+.lang-sel{display:flex;align-items:center;gap:4px;font-size:12px;color:#555;cursor:pointer;border:1px solid #dde2ea;border-radius:3px;padding:5px 8px;transition:border-color .15s}
+.lang-sel:hover{border-color:#003087}
+.hact{display:flex;align-items:center;gap:5px;cursor:pointer;color:#333;font-size:12px;transition:color .15s;white-space:nowrap}
+.hact:hover{color:#003087}
+.hact-icon{font-size:18px;color:#003087}
+.cart-wrap{position:relative}
+.cart-badge{position:absolute;top:-5px;right:-7px;background:#F47920;color:#fff;border-radius:50%;width:16px;height:16px;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center}
+
+/* ── NAVIGATION ─────────────────────────────────────── */
+.navbar{background:#003087;position:sticky;top:0;z-index:100}
+.nav-inner{max-width:1280px;margin:0 auto;padding:0 20px;display:flex;align-items:stretch}
+.nav-item{color:#fff;font-size:13px;font-weight:500;padding:11px 15px;cursor:pointer;white-space:nowrap;transition:background .15s;position:relative;display:flex;align-items:center;gap:4px;border-right:1px solid rgba(255,255,255,.08)}
+.nav-item:first-child{border-left:1px solid rgba(255,255,255,.08)}
+.nav-item:hover,.nav-item.active{background:rgba(255,255,255,.12)}
+.nav-item .caret{font-size:9px;opacity:.65;margin-left:1px}
+.nav-minny{margin-left:auto;background:rgba(244,121,32,.2);color:#F47920;font-weight:700;border-left:1px solid rgba(255,255,255,.08)}
+.nav-minny:hover{background:rgba(244,121,32,.35)!important}
+
+/* Dropdown */
+.nav-dropdown{position:absolute;top:100%;left:0;background:#fff;min-width:210px;box-shadow:0 8px 24px rgba(0,0,0,.14);border-top:3px solid #F47920;z-index:200;display:none;flex-direction:column;padding:6px 0}
+.nav-item:hover .nav-dropdown{display:flex}
+.dd-item{padding:8px 16px;font-size:12.5px;color:#333;cursor:pointer;transition:background .12s;border-left:3px solid transparent}
+.dd-item:hover{background:#FFF5EE;border-left-color:#F47920;color:#F47920}
+
+/* ── NEW PRODUCTS SECTION ───────────────────────────── */
+.np-section{padding:28px 0 36px;border-bottom:1px solid #e8ecf2}
+.np-inner{max-width:1280px;margin:0 auto;padding:0 20px}
+.np-topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px}
+.np-heading{font-size:20px;font-weight:800;color:#003087}
+.np-cat-btn{background:#F47920;color:#fff;border:none;padding:7px 16px;border-radius:3px;font-size:12.5px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px;transition:background .15s}
+.np-cat-btn:hover{background:#d96500}
+.np-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+@media(max-width:960px){.np-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:560px){.np-grid{grid-template-columns:1fr}}
+.np-card{border:1.5px solid #dde2ea;border-radius:5px;overflow:hidden;cursor:pointer;transition:box-shadow .15s,transform .15s;background:#fff}
+.np-card:hover{box-shadow:0 5px 18px rgba(0,0,0,.1);transform:translateY(-2px)}
+.np-card-head{background:#003087;padding:11px 12px;display:flex;align-items:center;justify-content:space-between}
+.np-cat-label{color:#fff;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.np-new-badge{background:#F47920;color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:2px}
+.np-card-body{padding:12px}
+.np-img-area{height:70px;background:#f0f4f8;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:28px;margin-bottom:10px}
+.np-pn{color:#F47920;font-size:13px;font-weight:800;font-family:'Courier New',monospace;margin-bottom:4px}
+.np-desc{font-size:11.5px;color:#58595B;line-height:1.45;margin-bottom:8px}
+.np-specs{list-style:none;font-size:11px;color:#555;line-height:1.8}
+.np-specs li::before{content:'• ';color:#F47920}
+.np-all-btn{display:block;text-align:center;margin-top:20px}
+.np-all-btn button{background:#003087;color:#fff;border:none;padding:9px 28px;border-radius:3px;font-size:13px;font-weight:600;cursor:pointer;transition:background .15s}
+.np-all-btn button:hover{background:#001a60}
+/* Carousel dots */
+.np-dots{display:flex;justify-content:center;gap:6px;margin-top:18px}
+.np-dot{width:8px;height:8px;border-radius:50%;background:#d0d8e8;cursor:pointer;transition:background .15s}
+.np-dot.active{background:#003087}
+
+/* ── CAT QUICK-LINKS ────────────────────────────────── */
+.cat-strip{background:#f5f7fa;border-top:1px solid #e4e9f2;border-bottom:1px solid #e4e9f2;padding:0 0}
+.cat-strip-inner{max-width:1280px;margin:0 auto;padding:0 20px;display:flex;align-items:center;gap:0;overflow-x:auto}
+.cat-link{padding:10px 16px;font-size:12.5px;color:#003087;font-weight:600;cursor:pointer;border-right:1px solid #e4e9f2;white-space:nowrap;transition:background .12s;display:flex;align-items:center;gap:5px;flex-shrink:0}
+.cat-link:hover{background:#e8edf7;color:#F47920}
+
+/* ── FEATURED PRODUCTS ──────────────────────────────── */
+.section{padding:36px 0}
+.section-inner{max-width:1280px;margin:0 auto;padding:0 20px}
+.section-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px}
+.section-title{font-size:18px;font-weight:800;color:#003087;border-left:4px solid #F47920;padding-left:10px}
+.see-all{font-size:12.5px;color:#003087;font-weight:600;cursor:pointer;text-decoration:underline}
+.see-all:hover{color:#F47920}
+.prod-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+@media(max-width:900px){.prod-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:560px){.prod-grid{grid-template-columns:1fr}}
+.prod-card{background:#fff;border:1.5px solid var(--mc-border);border-radius:5px;overflow:hidden;transition:box-shadow .18s,transform .18s;cursor:pointer}
+.prod-card:hover{box-shadow:0 6px 20px rgba(0,0,0,.09);transform:translateY(-2px)}
+.prod-card-top{background:#003087;padding:14px;display:flex;align-items:center;justify-content:center;height:80px;position:relative}
+.prod-cat-badge{position:absolute;top:7px;left:7px;background:#F47920;color:#fff;font-size:9px;font-weight:700;text-transform:uppercase;padding:2px 6px;border-radius:2px}
+.prod-pn-big{color:#fff;font-size:14px;font-weight:800;font-family:'Courier New',monospace;text-align:center}
+.prod-card-body{padding:12px}
+.prod-desc{font-size:12px;color:var(--mc-gray);margin-bottom:8px;line-height:1.45}
+.spec-rows{display:flex;flex-direction:column;gap:3px;margin-bottom:9px}
+.spec-row{display:flex;justify-content:space-between;font-size:11.5px;border-bottom:1px solid #f0f0f0;padding-bottom:3px}
+.spec-row .sk{color:var(--mc-gray)}
+.spec-row .sv{font-weight:700;color:#003087}
+.prod-foot{display:flex;align-items:center;justify-content:space-between;padding-top:7px;border-top:1px solid var(--mc-border)}
+.prod-price{font-size:15px;font-weight:800;color:#F47920}
+.prod-price span{font-size:10.5px;font-weight:400;color:#999}
+.prod-add{background:#003087;color:#fff;border:none;border-radius:3px;padding:5px 10px;font-size:11px;font-weight:600;cursor:pointer;transition:background .15s}
+.prod-add:hover{background:#F47920}
+.stock-ok{display:flex;align-items:center;gap:4px;font-size:10.5px;color:#00A651;font-weight:600;margin-bottom:7px}
+.stock-ok::before{content:'';width:6px;height:6px;background:#00A651;border-radius:50%;display:inline-block}
+.stock-no{color:#cc0000}
+
+/* ── INFO BAND ──────────────────────────────────────── */
+.info-band{background:#003087;padding:22px 0}
+.info-band-inner{max-width:1280px;margin:0 auto;padding:0 20px;display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+@media(max-width:700px){.info-band-inner{grid-template-columns:repeat(2,1fr)}}
+.ib-item{display:flex;align-items:flex-start;gap:10px;color:#fff}
+.ib-icon{font-size:24px;flex-shrink:0;margin-top:2px}
+.ib-title{font-size:13px;font-weight:700;margin-bottom:2px}
+.ib-sub{font-size:11px;color:#93afd4;line-height:1.5}
+
+/* ── NEWS / RESOURCES SECTION (horizontal list) ─────── */
+.news-section{padding:36px 0;border-top:1px solid #e8ecf2}
+.news-inner{max-width:1280px;margin:0 auto;padding:0 20px}
+.news-list{display:flex;flex-direction:column;gap:0;border:1.5px solid #dde2ea;border-radius:5px;overflow:hidden}
+.news-item{display:flex;gap:0;border-bottom:1px solid #e8ecf2;cursor:pointer;transition:background .12s}
+.news-item:last-child{border-bottom:none}
+.news-item:hover{background:#fafbfd}
+.news-thumb{width:150px;flex-shrink:0;background:#e8edf5;display:flex;align-items:center;justify-content:center;font-size:34px;min-height:100px}
+.news-thumb.t1{background:linear-gradient(135deg,#003087,#1a4a9a)}
+.news-thumb.t2{background:linear-gradient(135deg,#0a5c36,#00A651)}
+.news-thumb.t3{background:linear-gradient(135deg,#7b2d00,#F47920)}
+.news-thumb.t4{background:linear-gradient(135deg,#1a1a2e,#003087)}
+.news-content{flex:1;padding:14px 18px;display:flex;flex-direction:column;justify-content:center}
+.news-date{font-size:11px;color:#F47920;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px}
+.news-title{font-size:14px;font-weight:700;color:#003087;margin-bottom:5px;line-height:1.35}
+.news-excerpt{font-size:12px;color:#58595B;line-height:1.55;margin-bottom:8px}
+.news-read{font-size:11.5px;color:#F47920;font-weight:700;display:flex;align-items:center;gap:3px}
+.news-read::after{content:'›';font-size:15px}
+
+/* ── FOOTER ─────────────────────────────────────────── */
+.footer{background:#1a1a2e;color:#93afd4;padding:36px 0 0}
+.footer-inner{max-width:1280px;margin:0 auto;padding:0 20px;display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:28px;margin-bottom:28px}
+@media(max-width:800px){.footer-inner{grid-template-columns:1fr 1fr}}
+.footer-col h4{color:#fff;font-size:12.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px;border-bottom:2px solid var(--mc-orange);padding-bottom:5px;display:inline-block}
+.footer-col ul{list-style:none;display:flex;flex-direction:column;gap:6px}
+.footer-col ul li a{color:#93afd4;font-size:12px;transition:color .12s}
+.footer-col ul li a:hover{color:var(--mc-orange)}
+.footer-desc{font-size:12px;line-height:1.65;margin-bottom:12px}
+.footer-logo-txt{font-size:20px;font-weight:900;color:var(--mc-orange);letter-spacing:-.02em;margin-bottom:7px}
+.footer-logo-txt span{color:#fff}
+.social-icons{display:flex;gap:8px;margin-top:12px}
+.social-icon{width:30px;height:30px;background:rgba(255,255,255,.08);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;cursor:pointer;transition:background .15s}
+.social-icon:hover{background:var(--mc-orange)}
+.footer-bottom{background:#111122;padding:10px 20px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#555;gap:6px;flex-wrap:wrap}
+.footer-bottom a{color:#777}
+.footer-bottom a:hover{color:var(--mc-orange)}
+
+/* ── SUBSCRIBE POPUP ────────────────────────────────── */
+.sub-popup{position:fixed;bottom:28px;left:28px;z-index:9990;width:290px;background:#F47920;border-radius:6px;box-shadow:0 8px 30px rgba(0,0,0,.3);padding:18px 18px 16px;color:#fff;animation:slideup .3s ease}
+@keyframes slideup{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.sub-popup.hidden{display:none}
+.sub-close{position:absolute;top:9px;right:10px;background:none;border:none;color:#fff;font-size:16px;cursor:pointer;opacity:.8;line-height:1}
+.sub-close:hover{opacity:1}
+.sub-icon{font-size:24px;margin-bottom:7px}
+.sub-title{font-size:14px;font-weight:800;margin-bottom:3px}
+.sub-text{font-size:11.5px;opacity:.88;margin-bottom:12px;line-height:1.5}
+.sub-btn{background:#fff;color:#F47920;border:none;border-radius:3px;padding:8px 20px;font-size:12.5px;font-weight:700;cursor:pointer;width:100%;transition:background .15s}
+.sub-btn:hover{background:#fff3e8}
+
+/* ── MINNY FLOATING CHAT WIDGET ─────────────────────── */
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.15}}
+@keyframes pulse2{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+@keyframes tdot{0%,80%,100%{transform:scale(1);opacity:.4}40%{transform:scale(1.3);opacity:1}}
+
+.chat-fab{position:fixed;bottom:28px;right:28px;z-index:9999;cursor:pointer}
+.chat-fab-btn{width:64px;height:64px;background:linear-gradient(135deg,#003087,#001966);border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(0,0,0,.35),0 0 0 0 rgba(244,121,32,.4);animation:pulse-ring 2.5s infinite;transition:transform .2s}
+.chat-fab-btn:hover{transform:scale(1.08)}
+@keyframes pulse-ring{0%{box-shadow:0 4px 20px rgba(0,0,0,.35),0 0 0 0 rgba(244,121,32,.4)}70%{box-shadow:0 4px 20px rgba(0,0,0,.35),0 0 0 12px rgba(244,121,32,0)}100%{box-shadow:0 4px 20px rgba(0,0,0,.35),0 0 0 0 rgba(244,121,32,0)}}
+.chat-fab-notif{position:absolute;top:-3px;right:-3px;background:var(--mc-orange);color:#fff;border-radius:50%;width:20px;height:20px;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid #fff}
+
+.chat-panel{position:fixed;bottom:104px;right:28px;z-index:9998;width:400px;height:600px;background:#fff;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.25);display:none;flex-direction:column;overflow:hidden;animation:slideup .25s ease}
+.chat-panel.open{display:flex}
+.cp-header{background:linear-gradient(135deg,#003087,#001966);padding:14px 16px;display:flex;align-items:center;gap:12px;flex-shrink:0;border-bottom:2px solid var(--mc-orange)}
+.cp-av{width:46px;height:46px;flex-shrink:0}
+.cp-info h3{color:#fff;font-size:15px;font-weight:800}
+.cp-info p{color:#93afd4;font-size:11px;display:flex;align-items:center;gap:5px;margin-top:2px}
+.cp-dot{width:6px;height:6px;background:#00C48C;border-radius:50%;animation:pulse2 2s infinite}
+.cp-close{background:rgba(255,255,255,.12);border:none;border-radius:50%;width:30px;height:30px;color:#fff;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s;flex-shrink:0}
+.cp-close:hover{background:rgba(255,255,255,.25)}
+.cp-maximize{margin-left:auto;background:rgba(255,255,255,.12);border:none;border-radius:50%;width:30px;height:30px;color:#fff;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s;flex-shrink:0;margin-right:6px}
+.cp-maximize:hover{background:rgba(255,255,255,.25)}
+.chat-panel.maximized{width:92vw!important;height:92vh!important;bottom:4vh!important;right:4vw!important;border-radius:16px;transition:all .2s ease;flex-direction:row!important}
+.chat-panel.maximized .cp-header{display:none}
+/* Catalog side (visible only in maximized) */
+.catalog-side{display:none;flex-direction:column;background:#fff;border-right:2px solid #e2e8f0;width:0;overflow:hidden;transition:width .2s ease}
+.chat-panel.maximized .catalog-side{display:flex;width:60%;flex-shrink:0}
+.chat-side{display:flex;flex-direction:column;flex:1;min-width:0}
+/* Catalog side inner */
+.cs-header{background:linear-gradient(135deg,#003087,#001966);padding:12px 16px;display:flex;align-items:center;gap:12px;flex-shrink:0;border-bottom:2px solid #F47920}
+.cs-header-logo{font-size:18px;font-weight:900;color:#fff;letter-spacing:-.5px}
+.cs-header-logo span{color:#F47920}
+.cs-header-tagline{font-size:11px;color:#93afd4;margin-top:1px}
+.cs-hright{margin-left:auto;display:flex;align-items:center;gap:8px}
+.cs-search{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);border-radius:20px;padding:5px 12px;color:#fff;font-size:12px;outline:none;width:200px;transition:background .15s}
+.cs-search::placeholder{color:rgba(255,255,255,.5)}
+.cs-search:focus{background:rgba(255,255,255,.22)}
+/* Category tabs */
+.cs-tabs{display:flex;gap:0;background:#f8fafc;border-bottom:2px solid #e2e8f0;overflow-x:auto;flex-shrink:0}
+.cs-tabs::-webkit-scrollbar{height:3px}
+.cs-tab{padding:9px 14px;font-size:11.5px;font-weight:700;color:#64748b;cursor:pointer;white-space:nowrap;border-bottom:2px solid transparent;transition:all .15s;margin-bottom:-2px}
+.cs-tab:hover{color:#003087;background:#eef2ff}
+.cs-tab.active{color:#003087;border-bottom-color:#003087;background:#fff}
+/* Stats bar */
+.cs-stats{padding:6px 14px;background:#f0f4ff;border-bottom:1px solid #e2e8f0;font-size:11px;color:#64748b;display:flex;gap:16px;flex-shrink:0}
+.cs-stats strong{color:#003087}
+/* Product grid */
+.cs-grid{flex:1;overflow-y:auto;padding:12px;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;align-content:start}
+.cs-grid::-webkit-scrollbar{width:4px}
+.cs-grid::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:2px}
+/* Product card */
+.cs-card{background:#fff;border:1.5px solid #e2e8f0;border-radius:10px;padding:10px 12px;cursor:pointer;transition:all .15s;position:relative}
+.cs-card:hover{border-color:#003087;box-shadow:0 4px 16px rgba(0,48,135,.12);transform:translateY(-1px)}
+.cs-card-cat{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;padding:2px 6px;border-radius:4px;display:inline-block;margin-bottom:5px}
+.cs-card-pn{font-size:13px;font-weight:900;color:#003087;font-family:'Courier New',monospace;margin-bottom:3px}
+.cs-card-desc{font-size:10px;color:#64748b;line-height:1.4;margin-bottom:7px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.cs-card-specs{display:grid;grid-template-columns:1fr 1fr;gap:3px;margin-bottom:8px}
+.cs-spec{background:#f0f4ff;border-radius:5px;padding:3px 6px}
+.cs-spec-l{font-size:8.5px;color:#64748b;text-transform:uppercase;letter-spacing:.04em}
+.cs-spec-v{font-size:11px;font-weight:700;color:#003087}
+.cs-card-footer{display:flex;align-items:center;justify-content:space-between;padding-top:6px;border-top:1px solid #f0f4f8}
+.cs-price{font-size:12px;font-weight:800;color:#00A651}
+.cs-stock{font-size:10px;font-weight:600;padding:2px 6px;border-radius:10px}
+.cs-stock.in{background:#dcfce7;color:#166534}
+.cs-stock.out{background:#fee2e2;color:#991b1b}
+.cs-ask-btn{font-size:10px;font-weight:700;color:#F47920;background:#FFF0E0;border:none;border-radius:6px;padding:3px 8px;cursor:pointer;transition:background .12s}
+.cs-ask-btn:hover{background:#F47920;color:#fff}
+/* Chat side header in maximized mode */
+.chat-panel.maximized .chat-side .cp-chat-header{display:flex}
+.cp-chat-header{display:none;background:linear-gradient(135deg,#003087,#001966);padding:10px 14px;align-items:center;gap:10px;flex-shrink:0;border-bottom:2px solid #F47920}
+.cp-chat-header h4{color:#fff;font-size:14px;font-weight:800;flex:1}
+.cp-chat-header .cp-dot2{width:6px;height:6px;background:#00C48C;border-radius:50%;animation:pulse2 2s infinite}
+.cp-chat-header-btns{display:flex;gap:6px}
+
+.cp-chat{flex:1;overflow-y:auto;padding:14px;background:#F0F4F8;display:flex;flex-direction:column;gap:12px}
+.cp-chat::-webkit-scrollbar{width:3px}
+.cp-chat::-webkit-scrollbar-thumb{background:#c4cdd8;border-radius:2px}
+.cp-row{display:flex;gap:8px;align-items:flex-end}
+.cp-row.user{flex-direction:row-reverse}
+.cp-av-sm{width:32px;height:32px;flex-shrink:0}
+.cp-bubble{max-width:78%;padding:10px 14px;border-radius:16px;font-size:13px;line-height:1.5}
+.cp-bubble.bot{background:#fff;color:#333;border-bottom-left-radius:4px;box-shadow:0 2px 8px rgba(0,0,0,.07)}
+.cp-bubble.user{background:#003087;color:#fff;border-bottom-right-radius:4px}
+.typing-row{display:flex;gap:8px;align-items:flex-end}
+.typing-bub{background:#fff;border-radius:16px;border-bottom-left-radius:4px;padding:10px 14px;box-shadow:0 2px 8px rgba(0,0,0,.07);display:flex;gap:4px;align-items:center}
+.td{width:6px;height:6px;background:#F47920;border-radius:50%;animation:tdot 1.4s infinite}
+.td:nth-child(2){animation-delay:.2s}.td:nth-child(3){animation-delay:.4s}
+.cp-chips{display:flex;gap:5px;flex-wrap:wrap;padding:8px 12px;background:#fff;border-top:1px solid #eee;flex-shrink:0}
+.cp-chip{background:#EEF2FF;color:#003087;border:1.5px solid #d0d9f7;border-radius:12px;padding:3px 9px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;transition:all .12s}
+.cp-chip:hover{background:#003087;color:#fff;border-color:#003087}
+.cp-input-row{display:flex;gap:8px;align-items:flex-end;padding:10px 12px;background:#fff;border-top:1px solid #eee;flex-shrink:0}
+.cp-input{flex:1;border:1.5px solid #ddd;border-radius:18px;padding:9px 14px;font-size:13px;outline:none;resize:none;max-height:90px;overflow-y:auto;line-height:1.4;font-family:inherit;transition:border-color .15s}
+.cp-input:focus{border-color:var(--mc-orange)}
+.cp-send{width:38px;height:38px;background:var(--mc-orange);border:none;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s,transform .1s}
+.cp-send:hover{background:#d96500;transform:scale(1.06)}
+.cp-send:active{transform:scale(.94)}
+.cp-send svg{fill:#fff}
+
+/* Chat content elements */
+.pcard{background:#f7fafc;border:1.5px solid #e2e8f0;border-radius:9px;padding:9px 11px;margin-top:6px;cursor:pointer;transition:border-color .15s}
+.pcard:hover{border-color:var(--mc-orange)}
+.pn{font-weight:800;color:#003087;font-size:12.5px;font-family:'Courier New',monospace}
+.pdesc{font-size:11px;color:#718096;margin-top:2px}
+.spills{display:flex;gap:4px;flex-wrap:wrap;margin-top:5px}
+.sp{background:#e8edf5;color:#003087;font-size:9.5px;font-weight:600;padding:2px 6px;border-radius:6px}
+.sp.hi{background:#FFF0E0;color:#b84500}
+.prow{display:flex;justify-content:space-between;margin-top:6px;font-size:11.5px}
+.pprice{font-weight:700;color:#00A651}
+.pstock{color:#38a169;font-weight:600}
+.pstock.no{color:#e53e3e}
+.ctag{display:inline-block;font-size:9.5px;font-weight:700;text-transform:uppercase;padding:1px 6px;border-radius:3px;margin-bottom:4px}
+.c-amp{background:#fee2e2;color:#991b1b}.c-flt{background:#ede9fe;color:#5b21b6}
+.c-mix{background:#dbeafe;color:#1e40af}.c-att{background:#fef3c7;color:#92400e}
+.c-spl{background:#d1fae5;color:#064e3b}.c-sw{background:#f3f4f6;color:#374151}
+.cbox{background:linear-gradient(135deg,#003087,#001966);border-radius:9px;padding:11px 13px;margin-top:7px;color:#fff}
+.cbox-title{font-size:9.5px;text-transform:uppercase;letter-spacing:.07em;opacity:.65;margin-bottom:3px}
+.cbox-val{font-size:22px;font-weight:800;color:var(--mc-orange);font-family:'Courier New',monospace}
+.cbox-form{font-size:9.5px;opacity:.55;margin-top:3px;font-family:'Courier New',monospace}
+.cgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:7px}
+.ci{background:rgba(255,255,255,.08);border-radius:5px;padding:5px 8px}
+.ci-l{font-size:8.5px;text-transform:uppercase;opacity:.6;letter-spacing:.05em}
+.ci-v{font-size:14px;font-weight:700;color:var(--mc-orange);font-family:monospace}
+.ctbl{width:100%;border-collapse:collapse;font-size:10.5px;margin-top:5px}
+.ctbl th{background:rgba(255,255,255,.1);padding:4px 7px;text-align:left;font-size:9.5px;text-transform:uppercase}
+.ctbl td{padding:4px 7px;border-top:1px solid rgba(255,255,255,.07)}
+.ctbl tr:last-child td{color:var(--mc-orange);font-weight:700;border-top:1px solid rgba(255,255,255,.25)}
+.tstep{display:flex;gap:8px;padding:6px 0;border-bottom:1px solid #edf2f7}
+.tstep:last-child{border-bottom:none}
+.tsnum{width:20px;height:20px;background:var(--mc-orange);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;margin-top:2px}
+.tstxt{font-size:12px;color:#333;line-height:1.5}
+.seclab{font-size:10.5px;font-weight:700;color:var(--mc-orange);text-transform:uppercase;letter-spacing:.06em;margin-top:7px;margin-bottom:3px}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:7px}
+.fbox{background:#f0f4ff;border-radius:7px;padding:6px 8px}
+.fbox strong{display:block;font-size:11.5px;margin-bottom:1px}
+.fbox span{color:#718096;font-size:10.5px}
+.spectbl{width:100%;border-collapse:collapse;font-size:11.5px;border:1px solid #e2e8f0;border-radius:7px;overflow:hidden;margin-top:7px}
+.spectbl thead tr{background:#003087}
+.spectbl thead th{color:#fff;padding:5px 9px;text-align:left;font-size:10.5px}
+.spectbl tbody tr:nth-child(even){background:#f7fafc}
+.spectbl td{padding:4px 9px;color:#718096}
+.spectbl td:last-child{font-weight:600;color:#333}
+.diffwarn{font-size:10px;color:#c05000;margin-top:3px}
+.blink{animation:blink 1.6s infinite}
+</style>
+</head>
+<body>
+
+<!-- ══ COOKIE CONSENT BAR ════════════════════════════ -->
+<div class="cookie-bar" id="cookieBar">
+  <span>We use cookies to enhance your experience. By continuing to visit this site you agree to our use of cookies. <a href="#">Learn more</a></span>
+  <button class="cookie-close" onclick="document.getElementById('cookieBar').style.display='none'">✕ Dismiss</button>
+</div>
+
+<!-- ══ MAIN HEADER ═══════════════════════════════════ -->
+<div class="main-header">
+  <div class="header-inner">
+    <!-- Logo: blue monitor-style icon + text -->
+    <a class="mc-logo" href="#">
+      <div class="mc-logo-icon">
+        <svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="2" y="3" width="26" height="18" rx="2" stroke="#fff" stroke-width="2" fill="none"/>
+          <line x1="11" y1="21" x2="9" y2="27" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>
+          <line x1="19" y1="21" x2="21" y2="27" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>
+          <line x1="7" y1="27" x2="23" y2="27" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>
+          <path d="M8 14 L11 9 L14 13 L17 7 L20 11 L22 9" stroke="#F47920" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="mc-logo-text">
+        <div class="brand">mini<span>-circuits</span>®</div>
+        <div class="sub">RF &amp; Microwave Components</div>
+      </div>
+    </a>
+
+    <!-- Dual stacked search inputs -->
+    <div class="header-search-stack">
+      <div class="search-row" style="position:relative">
+        <span class="search-lbl">Model No. Search</span>
+        <input type="text" id="modelSearch" placeholder="e.g. ERA-2+, PHA-1H+" onkeydown="if(event.key==='Enter')siteSearch()">
+        <button class="srch-btn" onclick="siteSearch()">Search</button>
+      </div>
+      <div class="search-row" style="position:relative">
+        <span class="search-lbl">Site Search</span>
+        <input type="text" id="siteSearchInput" placeholder="amplifiers, filters, application notes…" onkeydown="if(event.key==='Enter')siteSearch2()">
+        <button class="srch-btn orange" onclick="siteSearch2()">Search</button>
+      </div>
+    </div>
+
+    <!-- Right: language + account + cart -->
+    <div class="header-right">
+      <div class="lang-sel">🌐 <span>English</span> ▾</div>
+      <div class="hact">
+        <span class="hact-icon">👤</span>
+        <div style="line-height:1.2">
+          <div style="font-size:10px;color:#888">Hello, Sign in</div>
+          <div style="font-size:12px;font-weight:700;color:#003087">Your Account</div>
+        </div>
+      </div>
+      <div class="hact cart-wrap">
+        <span class="hact-icon">🛒</span>
+        <div style="font-size:12px;font-weight:700;color:#003087">Cart</div>
+        <span class="cart-badge">3</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ NAVIGATION ════════════════════════════════════ -->
+<nav class="navbar">
+  <div class="nav-inner">
+    <div class="nav-item">Products <span class="caret">▾</span>
+      <div class="nav-dropdown">
+        <div class="dd-item" onclick="openChat('Find me all amplifier products')">Amplifiers</div>
+        <div class="dd-item" onclick="openChat('Find me all filter products')">Filters</div>
+        <div class="dd-item" onclick="openChat('Find me all mixer products')">Mixers</div>
+        <div class="dd-item" onclick="openChat('Find me all attenuator products')">Attenuators</div>
+        <div class="dd-item" onclick="openChat('Find me all splitter products')">Splitters/Combiners</div>
+        <div class="dd-item" onclick="openChat('Find me all switch products')">Switches</div>
+        <div class="dd-item">Phase Shifters</div>
+        <div class="dd-item">Oscillators / VCOs</div>
+      </div>
+    </div>
+    <div class="nav-item">Tools and Resources <span class="caret">▾</span>
+      <div class="nav-dropdown">
+        <div class="dd-item" onclick="openChat('I need help with cascade noise figure calculation')">Cascade Calculator</div>
+        <div class="dd-item" onclick="openChat('Convert VSWR 1.5 to return loss')">VSWR / RL Converter</div>
+        <div class="dd-item" onclick="openChat('Convert 20 dBm to milliwatts')">dBm / mW Converter</div>
+        <div class="dd-item">S-Parameter Files</div>
+        <div class="dd-item">Application Notes</div>
+        <div class="dd-item">PCB Layout Guidelines</div>
+      </div>
+    </div>
+    <div class="nav-item">Quality and Compliance <span class="caret">▾</span>
+      <div class="nav-dropdown">
+        <div class="dd-item">ISO 9001</div>
+        <div class="dd-item">RoHS Compliance</div>
+        <div class="dd-item">REACH</div>
+        <div class="dd-item">ITAR / EAR</div>
+      </div>
+    </div>
+    <div class="nav-item">About Us</div>
+    <div class="nav-item">Contact and Support <span class="caret">▾</span>
+      <div class="nav-dropdown">
+        <div class="dd-item">Technical Support</div>
+        <div class="dd-item">Sales Inquiries</div>
+        <div class="dd-item">Request a Quote</div>
+        <div class="dd-item">Find a Distributor</div>
+      </div>
+    </div>
+    <div class="nav-item">Careers</div>
+    <div class="nav-item">Blog</div>
+    <div class="nav-item nav-minny" onclick="openChat('Hi Minny!')">🧽 Chat with Minny!</div>
+  </div>
+</nav>
+
+<!-- ══ CATEGORY QUICK-LINKS ══════════════════════════ -->
+<div class="cat-strip">
+  <div class="cat-strip-inner">
+    <div class="cat-link" onclick="openChat('Find me an amplifier')">📡 Amplifiers</div>
+    <div class="cat-link" onclick="openChat('Find me a bandpass filter')">🔁 Filters</div>
+    <div class="cat-link" onclick="openChat('Find me a mixer')">⚡ Mixers</div>
+    <div class="cat-link" onclick="openChat('Find me an attenuator 6dB')">🎚️ Attenuators</div>
+    <div class="cat-link" onclick="openChat('Find me a 2-way splitter')">🔀 Splitters</div>
+    <div class="cat-link" onclick="openChat('Find me a SPDT switch')">🔌 Switches</div>
+    <div class="cat-link" onclick="openChat('Tell me about phase shifters')">🔄 Phase Shifters</div>
+    <div class="cat-link" onclick="openChat('Tell me about VCOs and synthesizers')">🛰️ VCOs &amp; Synth</div>
+  </div>
+</div>
+
+<!-- ══ NEW PRODUCTS SECTION ══════════════════════════ -->
+<section class="np-section">
+  <div class="np-inner">
+    <div class="np-topbar">
+      <div class="np-heading">New Products</div>
+      <button class="np-cat-btn">New Products by Category ▾</button>
+    </div>
+    <div class="np-grid">
+      <!-- Card 1 -->
+      <div class="np-card" onclick="openChatPN('ZX60-V82+')">
+        <div class="np-card-head">
+          <span class="np-cat-label">Amplifiers</span>
+          <span class="np-new-badge">NEW</span>
+        </div>
+        <div class="np-card-body">
+          <div class="np-img-area">📡</div>
+          <div class="np-pn">ZX60-V82+</div>
+          <div class="np-desc">Wideband Gain Block, 0.3–8 GHz</div>
+          <ul class="np-specs">
+            <li>Gain: 17.0 dB</li>
+            <li>NF: 2.7 dB</li>
+            <li>P1dB: 20 dBm</li>
+          </ul>
+        </div>
+      </div>
+      <!-- Card 2 -->
+      <div class="np-card" onclick="openChatPN('PHA-1H+')">
+        <div class="np-card-head">
+          <span class="np-cat-label">LNA</span>
+          <span class="np-new-badge">NEW</span>
+        </div>
+        <div class="np-card-body">
+          <div class="np-img-area">🔬</div>
+          <div class="np-pn">PHA-1H+</div>
+          <div class="np-desc">Low Noise Amplifier, 50 MHz–6 GHz</div>
+          <ul class="np-specs">
+            <li>NF: 1.7 dB</li>
+            <li>Gain: 20.0 dB</li>
+            <li>Package: QFN-16</li>
+          </ul>
+        </div>
+      </div>
+      <!-- Card 3 -->
+      <div class="np-card" onclick="openChatPN('ZFBP-2400+')">
+        <div class="np-card-head">
+          <span class="np-cat-label">Filters</span>
+          <span class="np-new-badge">NEW</span>
+        </div>
+        <div class="np-card-body">
+          <div class="np-img-area">🔁</div>
+          <div class="np-pn">ZFBP-2400+</div>
+          <div class="np-desc">Bandpass Filter, 2.4–2.5 GHz (WiFi/ISM)</div>
+          <ul class="np-specs">
+            <li>IL: 1.5 dB</li>
+            <li>Rejection: 30 dBc</li>
+            <li>Package: SMA</li>
+          </ul>
+        </div>
+      </div>
+      <!-- Card 4 -->
+      <div class="np-card" onclick="openChatPN('ZYSWA-2-50DR+')">
+        <div class="np-card-head">
+          <span class="np-cat-label">Switches</span>
+          <span class="np-new-badge">NEW</span>
+        </div>
+        <div class="np-card-body">
+          <div class="np-img-area">🔌</div>
+          <div class="np-pn">ZYSWA-2-50DR+</div>
+          <div class="np-desc">Ultra-Fast SPDT Switch, DC–5 GHz</div>
+          <ul class="np-specs">
+            <li>IL: 0.5 dB</li>
+            <li>Isolation: 60 dB</li>
+            <li>Speed: 1 ns</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <!-- Carousel dots -->
+    <div class="np-dots">
+      <div class="np-dot active" onclick="activateDot(this)"></div>
+      <div class="np-dot" onclick="activateDot(this)"></div>
+      <div class="np-dot" onclick="activateDot(this)"></div>
+    </div>
+    <div class="np-all-btn">
+      <button onclick="openChat('Show me all new products')">All New Products</button>
+    </div>
+  </div>
+</section>
+
+<!-- ══ FEATURED PRODUCTS ══════════════════════════════ -->
+<section class="section" style="background:#f5f7fa">
+  <div class="section-inner">
+    <div class="section-hdr">
+      <div class="section-title">Featured Products</div>
+      <span class="see-all" onclick="openChat('Show me all featured products')">See all products →</span>
+    </div>
+    <div class="prod-grid" id="featuredProducts"></div>
+  </div>
+</section>
+
+<!-- ══ INFO BAND ══════════════════════════════════════ -->
+<div class="info-band">
+  <div class="info-band-inner">
+    <div class="ib-item"><div class="ib-icon">🚀</div><div><div class="ib-title">Same-Day Shipping</div><div class="ib-sub">Orders placed before 5 PM EST ship same business day</div></div></div>
+    <div class="ib-item"><div class="ib-icon">🛡️</div><div><div class="ib-title">ISO 9001 Certified</div><div class="ib-sub">Rigorous quality management across all manufacturing</div></div></div>
+    <div class="ib-item"><div class="ib-icon">📞</div><div><div class="ib-title">24/7 Technical Support</div><div class="ib-sub">Expert FAE support around the clock</div></div></div>
+    <div class="ib-item"><div class="ib-icon">🌍</div><div><div class="ib-title">Global Distribution</div><div class="ib-sub">200+ distributors worldwide for fast local delivery</div></div></div>
+  </div>
+</div>
+
+<!-- ══ NEWS / RESOURCES (horizontal list) ════════════ -->
+<section class="news-section">
+  <div class="news-inner">
+    <div class="section-hdr" style="margin-bottom:16px">
+      <div class="section-title">Application Notes &amp; News</div>
+      <span class="see-all" onclick="openChat('Tell me about Mini-Circuits resources')">View all →</span>
+    </div>
+    <div class="news-list">
+      <div class="news-item" onclick="openChat('Explain PCB layout best practices for RF amplifiers')">
+        <div class="news-thumb t1">🖥️</div>
+        <div class="news-content">
+          <div class="news-date">April 2026</div>
+          <div class="news-title">PCB Layout Best Practices for RF Amplifiers</div>
+          <div class="news-excerpt">Critical ground plane, decoupling, and trace routing techniques to eliminate oscillation and optimize gain flatness in your RF amplifier circuit.</div>
+          <div class="news-read">Continue reading</div>
+        </div>
+      </div>
+      <div class="news-item" onclick="openChat('Cascade analysis: PHA-1H+ then ERA-2+')">
+        <div class="news-thumb t2">⛓️</div>
+        <div class="news-content">
+          <div class="news-date">March 2026</div>
+          <div class="news-title">Cascaded Noise Figure Using the Friis Formula</div>
+          <div class="news-excerpt">Step-by-step guide to calculating system NF, total gain, and OIP3 for multi-stage receiver chains.</div>
+          <div class="news-read">Continue reading</div>
+        </div>
+      </div>
+      <div class="news-item" onclick="openChat('What is P1dB and how is it measured?')">
+        <div class="news-thumb t3">📊</div>
+        <div class="news-content">
+          <div class="news-date">February 2026</div>
+          <div class="news-title">Understanding P1dB, OIP3, and Amplifier Linearity</div>
+          <div class="news-excerpt">A comprehensive explanation of the 1 dB compression point, third-order intercept, and linear system design.</div>
+          <div class="news-read">Continue reading</div>
+        </div>
+      </div>
+      <div class="news-item" onclick="openChat('Tell me about 5G component selection')">
+        <div class="news-thumb t4">📡</div>
+        <div class="news-content">
+          <div class="news-date">January 2026</div>
+          <div class="news-title">Selecting RF Components for 5G Sub-6 GHz Applications</div>
+          <div class="news-excerpt">A guide to choosing LNAs, filters, and switches for modern 5G FR1 receiver and transmitter chains.</div>
+          <div class="news-read">Continue reading</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ FOOTER ══════════════════════════════════════════ -->
+<footer class="footer">
+  <div class="footer-inner">
+    <div class="footer-col">
+      <div class="footer-logo-txt">mini<span>-circuits</span></div>
+      <div class="footer-desc">The world's largest manufacturer of RF and microwave components. Delivering precision from DC to 90 GHz since 1969.</div>
+      <div><strong style="color:#fff;font-size:12px">📞 1-800-854-7949</strong></div>
+      <div style="margin-top:4px"><span style="font-size:12px">✉ info@minicircuits.com</span></div>
+      <div class="social-icons">
+        <div class="social-icon">in</div>
+        <div class="social-icon">🐦</div>
+        <div class="social-icon">▶</div>
+        <div class="social-icon">📘</div>
+      </div>
+    </div>
+    <div class="footer-col">
+      <h4>Products</h4>
+      <ul>
+        <li><a href="#">Amplifiers</a></li>
+        <li><a href="#">Filters</a></li>
+        <li><a href="#">Mixers</a></li>
+        <li><a href="#">Attenuators</a></li>
+        <li><a href="#">Splitters/Combiners</a></li>
+        <li><a href="#">RF Switches</a></li>
+        <li><a href="#">Phase Shifters</a></li>
+        <li><a href="#">Oscillators / VCOs</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>Support</h4>
+      <ul>
+        <li><a href="#">Technical Support</a></li>
+        <li><a href="#">Application Notes</a></li>
+        <li><a href="#">S-Parameter Files</a></li>
+        <li><a href="#">PCB Layout Guide</a></li>
+        <li><a href="#">Calculators</a></li>
+        <li><a href="#">FAQs</a></li>
+        <li><a onclick="openChat('Hi Minny!')" style="cursor:pointer;color:#F47920">🧽 Chat with Minny!</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>Company</h4>
+      <ul>
+        <li><a href="#">About Us</a></li>
+        <li><a href="#">Careers</a></li>
+        <li><a href="#">News &amp; Press</a></li>
+        <li><a href="#">Quality / ISO</a></li>
+        <li><a href="#">RoHS / Environmental</a></li>
+        <li><a href="#">Distributors</a></li>
+        <li><a href="#">Contact Us</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2026 Mini-Circuits. All Rights Reserved.</span>
+    <span style="color:#444">|</span>
+    <a href="#">Privacy Policy</a>
+    <span style="color:#444">|</span>
+    <a href="#">Terms of Use</a>
+    <span style="color:#444">|</span>
+    <a href="#">Sitemap</a>
+    <span style="color:#444">|</span>
+    <span style="color:#F47920">😊 Powered by Minny — Your Friendly RF AI</span>
+  </div>
+</footer>
+
+<!-- ══ SUBSCRIBE POPUP ════════════════════════════════ -->
+<div class="sub-popup" id="subPopup">
+  <button class="sub-close" onclick="document.getElementById('subPopup').classList.add('hidden')">✕</button>
+  <div class="sub-icon">📧</div>
+  <div class="sub-title">Subscribe for Weekly Updates</div>
+  <div class="sub-text">New products, app notes, and RF tips delivered to your inbox every week.</div>
+  <button class="sub-btn" onclick="document.getElementById('subPopup').classList.add('hidden');openChat('Tell me about Mini-Circuits newsletters and updates')">Subscribe Now</button>
+</div>
+
+<!-- ══ MINNY FLOATING CHAT WIDGET ════════════════════ -->
+
+<!-- FAB Button -->
+<div class="chat-fab" onclick="toggleChat()">
+  <div class="chat-fab-btn">
+    <svg width="36" height="40" viewBox="0 0 80 100" xmlns="http://www.w3.org/2000/svg">
+      <line x1="40" y1="1" x2="40" y2="17" stroke="#F47920" stroke-width="2.5" stroke-linecap="round"/>
+      <circle cx="40" cy="1" r="3.5" fill="#F47920" class="blink"/>
+      <rect x="11" y="17" width="58" height="42" rx="13" fill="#fff" opacity=".95"/>
+      <ellipse cx="28" cy="35" rx="6.5" ry="6.5" fill="#F47920"/>
+      <ellipse cx="52" cy="35" rx="6.5" ry="6.5" fill="#F47920"/>
+      <ellipse cx="28" cy="35" rx="3.8" ry="3.8" fill="#fff"/>
+      <ellipse cx="52" cy="35" rx="3.8" ry="3.8" fill="#fff"/>
+      <ellipse cx="29.2" cy="33.8" rx="2" ry="2" fill="#003087"/>
+      <ellipse cx="53.2" cy="33.8" rx="2" ry="2" fill="#003087"/>
+      <path d="M 24 44 Q 40 54 56 44" stroke="#F47920" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      <rect x="11" y="60" width="58" height="36" rx="11" fill="#fff" opacity=".95"/>
+      <rect x="20" y="65" width="40" height="24" rx="5" fill="#003087"/>
+      <text x="25" y="81" fill="#F47920" font-size="12" font-weight="900" font-family="Arial">MC</text>
+    </svg>
+  </div>
+  <div class="chat-fab-notif" id="fabNotif">1</div>
+</div>
+
+<!-- Chat Panel -->
+<div class="chat-panel" id="chatPanel">
+
+  <!-- ═══ CATALOG SIDE (visible in maximized mode) ═══ -->
+  <div class="catalog-side" id="catalogSide">
+    <!-- Catalog Header -->
+    <div class="cs-header">
+      <div>
+        <div class="cs-header-logo">Mini<span>-Circuits</span></div>
+        <div class="cs-header-tagline">3,533 RF Components</div>
+      </div>
+      <div class="cs-hright">
+        <input class="cs-search" id="csSearch" type="text" placeholder="🔍 Search part number or keyword..." oninput="filterCatalog()">
+        <button class="cp-maximize" id="maxBtn" onclick="toggleMaximize()" title="Minimize">⮾</button>
+        <button class="cp-close" onclick="toggleChat()">✕</button>
+      </div>
+    </div>
+    <!-- Category Tabs -->
+    <div class="cs-tabs" id="csTabs">
+      <div class="cs-tab active" onclick="setTab('all',this)">All</div>
+      <div class="cs-tab" onclick="setTab('amp',this)">📡 Amplifiers</div>
+      <div class="cs-tab" onclick="setTab('flt',this)">🔁 Filters</div>
+      <div class="cs-tab" onclick="setTab('mix',this)">⚡ Mixers</div>
+      <div class="cs-tab" onclick="setTab('att',this)">🎚️ Attenuators</div>
+      <div class="cs-tab" onclick="setTab('spl',this)">🔀 Splitters</div>
+      <div class="cs-tab" onclick="setTab('sw',this)">🔌 Switches</div>
+      <div class="cs-tab" onclick="setTab('xfmr',this)">🔗 Transformers</div>
+    </div>
+    <!-- Stats bar -->
+    <div class="cs-stats" id="csStats"><strong id="csCount">0</strong>&nbsp;products &nbsp;|&nbsp; Click any card to ask Minny about it ⚡</div>
+    <!-- Product Grid -->
+    <div class="cs-grid" id="csGrid"><div style="grid-column:1/-1;text-align:center;color:#94a3b8;padding:40px">Loading catalog…</div></div>
+  </div>
+
+  <!-- ═══ CHAT SIDE ═══ -->
+  <div class="chat-side">
+    <!-- Header (normal mode) -->
+    <div class="cp-header" id="cpNormalHeader">
+      <svg class="cp-av" viewBox="0 0 80 100" xmlns="http://www.w3.org/2000/svg">
+        <line x1="40" y1="1" x2="40" y2="17" stroke="#F47920" stroke-width="2.5" stroke-linecap="round"/>
+        <circle cx="40" cy="1" r="3.5" fill="#F47920" class="blink"/>
+        <rect x="11" y="17" width="58" height="42" rx="13" fill="#1C2951"/>
+        <ellipse cx="28" cy="35" rx="6.5" ry="6.5" fill="#F47920"/>
+        <ellipse cx="52" cy="35" rx="6.5" ry="6.5" fill="#F47920"/>
+        <ellipse cx="28" cy="35" rx="3.8" ry="3.8" fill="#fff"/>
+        <ellipse cx="52" cy="35" rx="3.8" ry="3.8" fill="#fff"/>
+        <ellipse cx="29.2" cy="33.8" rx="2" ry="2" fill="#1C2951"/>
+        <ellipse cx="53.2" cy="33.8" rx="2" ry="2" fill="#1C2951"/>
+        <path d="M 23 47 Q 40 58 57 47" stroke="#F47920" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+        <rect x="11" y="60" width="58" height="36" rx="11" fill="#1C2951"/>
+        <rect x="20" y="65" width="40" height="24" rx="5" fill="#0A1220"/>
+        <text x="25" y="81" fill="#F47920" font-size="12" font-weight="900" font-family="Arial">MC</text>
+      </svg>
+      <div class="cp-info">
+        <h3>Minny ⚡ <span style="font-weight:400;font-size:12px;color:#93afd4">— Your RF Cartoon Sidekick!</span></h3>
+        <p><span class="cp-dot"></span> ONLINE &amp; READY TO ZAP!! 🤖✨</p>
+      </div>
+      <button class="cp-maximize" id="maxBtnNormal" onclick="toggleMaximize()" title="Maximize">⛶</button>
+      <button class="cp-close" onclick="toggleChat()">✕</button>
+    </div>
+    <!-- Header (maximized mode chat side) -->
+    <div class="cp-chat-header">
+      <svg class="cp-av-sm" viewBox="0 0 80 100" xmlns="http://www.w3.org/2000/svg">
+        <line x1="40" y1="1" x2="40" y2="17" stroke="#F47920" stroke-width="2.5" stroke-linecap="round"/>
+        <circle cx="40" cy="1" r="3.5" fill="#F47920" class="blink"/>
+        <rect x="11" y="17" width="58" height="42" rx="13" fill="#1C2951"/>
+        <ellipse cx="28" cy="35" rx="6.5" ry="6.5" fill="#F47920"/>
+        <ellipse cx="52" cy="35" rx="6.5" ry="6.5" fill="#F47920"/>
+        <ellipse cx="28" cy="35" rx="3.8" ry="3.8" fill="#fff"/>
+        <ellipse cx="52" cy="35" rx="3.8" ry="3.8" fill="#fff"/>
+        <ellipse cx="29.2" cy="33.8" rx="2" ry="2" fill="#1C2951"/>
+        <ellipse cx="53.2" cy="33.8" rx="2" ry="2" fill="#1C2951"/>
+        <path d="M 23 47 Q 40 58 57 47" stroke="#F47920" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+        <rect x="11" y="60" width="58" height="36" rx="11" fill="#1C2951"/>
+        <rect x="20" y="65" width="40" height="24" rx="5" fill="#0A1220"/>
+        <text x="25" y="81" fill="#F47920" font-size="12" font-weight="900" font-family="Arial">MC</text>
+      </svg>
+      <h4>Minny ⚡ <span style="font-weight:400;font-size:11px;opacity:.7">RF Assistant</span></h4>
+      <span class="cp-dot2"></span>
+    </div>
+
+    <!-- Chat Messages -->
+    <div class="cp-chat" id="cpChat"></div>
+
+    <!-- Quick Chips -->
+    <div class="cp-chips">
+      <div class="cp-chip" onclick="qSend('Find me an LNA under 2dB NF for 2.4GHz')">🔍 Find me an LNA</div>
+      <div class="cp-chip" onclick="qSend('Alternatives to ERA-2+')">🔄 ERA-2+ alternatives?</div>
+      <div class="cp-chip" onclick="qSend('Cascade: PHA-1H+ then ERA-2+')">⛓ Cascade calc</div>
+      <div class="cp-chip" onclick="qSend('Convert VSWR 1.8 to return loss')">📡 VSWR 1.8 → RL</div>
+      <div class="cp-chip" onclick="qSend('My amplifier is oscillating, how to fix?')">🔧 Amp oscillating!</div>
+      <div class="cp-chip" onclick="qSend('Convert 23 dBm to mW')">⚡ 23 dBm → mW</div>
+    </div>
+
+    <!-- Input -->
+    <div class="cp-input-row">
+      <textarea class="cp-input" id="cpInput" rows="1" placeholder="Ask me anything RF! ⚡ I'll ask the right questions 🤖"></textarea>
+      <button class="cp-send" onclick="doSend()">
+        <svg width="16" height="16" viewBox="0 0 24 24"><path d="M2 21L23 12 2 3v7l15 2-15 2z"/></svg>
+      </button>
+    </div>
+  </div>
+
+</div>
+
+
+<script>
+// ══════════════════════════════════════════════════
+//  PRODUCT DATABASE
+// ══════════════════════════════════════════════════
+const DB = [
+  {pn:'ZX60-V82+',  cat:'amp',type:'gain_block',flo:300, fhi:8000, gain:17.0,nf:2.7, p1o:20,  oip3:32, vcc:5,  icc:68,  pkg:'SMA',     price:18.95,stock:true, desc:'Wideband Gain Block, 0.3–8 GHz'},
+  {pn:'ERA-2+',     cat:'amp',type:'gain_block',flo:0,   fhi:6000, gain:15.6,nf:3.4, p1o:12.5,oip3:23, vcc:3.5,icc:35,  pkg:'SOT-89',  price:3.95, stock:true, desc:'MMIC Cascadable Gain Block, DC–6 GHz'},
+  {pn:'ERA-6+',     cat:'amp',type:'gain_block',flo:0,   fhi:4000, gain:11.5,nf:3.4, p1o:18.5,oip3:29, vcc:5,  icc:90,  pkg:'SOT-89',  price:4.95, stock:true, desc:'High-Power MMIC Gain Block, DC–4 GHz'},
+  {pn:'PHA-1H+',   cat:'amp',type:'lna',       flo:50,  fhi:6000, gain:20.0,nf:1.7, p1o:18,  oip3:29, vcc:5,  icc:55,  pkg:'QFN-16',  price:8.95, stock:true, desc:'Low Noise Amplifier, 0.05–6 GHz, NF=1.7 dB'},
+  {pn:'ZX60-83LN+',cat:'amp',type:'lna',       flo:700, fhi:8300, gain:20.5,nf:1.4, p1o:14,  oip3:27, vcc:5,  icc:75,  pkg:'SMA',     price:39.95,stock:true, desc:'Low Noise Amplifier, 0.7–8.3 GHz, NF=1.4 dB'},
+  {pn:'GVA-81+',   cat:'amp',type:'gain_block',flo:0,   fhi:6000, gain:12.5,nf:4.0, p1o:20,  oip3:32, vcc:5,  icc:110, pkg:'SOT-89',  price:5.95, stock:true, desc:'High-IP3 MMIC Gain Block, DC–6 GHz'},
+  {pn:'ZVA-213-S+',cat:'amp',type:'driver',    flo:20,  fhi:13000,gain:14.0,nf:3.5, p1o:22,  oip3:33, vcc:5,  icc:250, pkg:'SMA',     price:149.95,stock:false,desc:'Wideband Driver Amplifier, 0.02–13 GHz'},
+  {pn:'BFCN-1445+',cat:'flt',type:'bandpass',  flo:1400,fhi:1490, il:1.2,rej:35,rl:15, pkg:'0805',price:2.95, stock:true, desc:'Ceramic BPF, 1400–1490 MHz (GPS L1)'},
+  {pn:'ZFBP-2400+',cat:'flt',type:'bandpass',  flo:2400,fhi:2500, il:1.5,rej:30,rl:14, pkg:'SMA', price:24.95,stock:true, desc:'Bandpass Filter, 2.4–2.5 GHz (WiFi/ISM)'},
+  {pn:'SLP-50+',   cat:'flt',type:'lowpass',   flo:0,   fhi:50,   il:0.3,rej:40,rl:18, pkg:'0805',price:1.95, stock:true, desc:'LTCC Lowpass Filter, fc=50 MHz'},
+  {pn:'SHP-100+',  cat:'flt',type:'highpass',  flo:100, fhi:6000, il:0.4,rej:38,rl:17, pkg:'0805',price:2.25, stock:true, desc:'LTCC Highpass Filter, fc=100 MHz'},
+  {pn:'ZX05-C42MH+',cat:'mix',rflo:2000,rfhi:4200,ifhi:1500,cvloss:6.5,lopwr:10,iip3:13,pkg:'SMA',price:54.95,stock:true, desc:'Double Balanced Mixer, RF 2–4.2 GHz'},
+  {pn:'ADE-1+',    cat:'mix',rflo:500, rfhi:500, ifhi:500, cvloss:5.0,lopwr:7, iip3:15,pkg:'SOIC-8',price:7.95,stock:true, desc:'Double Balanced Mixer, 0.5–500 MHz'},
+  {pn:'VAT-3+',    cat:'att',atten:3,  fhi:6000, pwr:1000,vswr:1.20,pkg:'SMA',price:12.95,stock:true, desc:'Fixed Attenuator, 3 dB, DC–6 GHz'},
+  {pn:'VAT-6+',    cat:'att',atten:6,  fhi:6000, pwr:1000,vswr:1.22,pkg:'SMA',price:12.95,stock:true, desc:'Fixed Attenuator, 6 dB, DC–6 GHz'},
+  {pn:'VAT-10+',   cat:'att',atten:10, fhi:6000, pwr:1000,vswr:1.25,pkg:'SMA',price:12.95,stock:true, desc:'Fixed Attenuator, 10 dB, DC–6 GHz'},
+  {pn:'ZFSC-2-2500+',cat:'spl',ways:2, flo:2,   fhi:2500, il:3.5,iso:22,aba:0.3,phb:2,  pkg:'SMA',price:18.95,stock:true, desc:'2-Way 0° Splitter/Combiner, 2–2500 MHz'},
+  {pn:'ZX10-2-12+',cat:'spl', ways:2, flo:2,   fhi:2000, il:3.2,iso:20,aba:0.2,phb:1.5,pkg:'SMA',price:16.95,stock:true, desc:'2-Way Splitter/Combiner, 0.02–2 GHz'},
+  {pn:'ZFRSC-183+',cat:'spl', ways:2, flo:2,   fhi:18300,il:4.0,iso:18,aba:0.5,phb:3,   pkg:'SMA',price:89.95,stock:true, desc:'Ultra-Wideband 2-Way Splitter, 0.002–18.3 GHz'},
+  {pn:'ZYSWA-2-50DR+',cat:'sw',topo:'SPDT',fhi:5000, il:0.5,iso:60,p1db:30,spd:1,  ctlv:3.3,pkg:'QFN-16',price:14.95,stock:true, desc:'Ultra-Fast SPDT Switch, DC–5 GHz, 1 ns'},
+  {pn:'ZASWA-2-50DR+',cat:'sw',topo:'SPDT',fhi:6000, il:0.6,iso:55,p1db:31,spd:1.5,ctlv:3.3,pkg:'QFN-16',price:16.95,stock:true, desc:'SPDT Absorptive Switch, DC–6 GHz'},
+];
+
+// Featured products for homepage
+const FEATURED_PNS = ['ZX60-V82+','PHA-1H+','ERA-2+','ZFBP-2400+','ZFSC-2-2500+','ZYSWA-2-50DR+'];
+const CAT_CLS = {amp:'c-amp',flt:'c-flt',mix:'c-mix',att:'c-att',spl:'c-spl',sw:'c-sw'};
+const CAT_LBL = {amp:'Amplifier',flt:'Filter',mix:'Mixer',att:'Attenuator',spl:'Splitter',sw:'Switch'};
+
+// Render featured products
+(function(){
+  const grid = document.getElementById('featuredProducts');
+  FEATURED_PNS.forEach(pn => {
+    const p = DB.find(x => x.pn === pn);
+    if (!p) return;
+    let specRows = '';
+    if (p.cat==='amp') specRows = `
+      <div class="spec-row"><span class="sk">Frequency</span><span class="sv">${p.flo}–${p.fhi} MHz</span></div>
+      <div class="spec-row"><span class="sk">Gain</span><span class="sv">${p.gain} dB</span></div>
+      <div class="spec-row"><span class="sk">Noise Figure</span><span class="sv">${p.nf} dB</span></div>
+      <div class="spec-row"><span class="sk">Output P1dB</span><span class="sv">${p.p1o} dBm</span></div>`;
+    else if (p.cat==='flt') specRows = `
+      <div class="spec-row"><span class="sk">Passband</span><span class="sv">${p.flo}–${p.fhi} MHz</span></div>
+      <div class="spec-row"><span class="sk">Insertion Loss</span><span class="sv">${p.il} dB</span></div>
+      <div class="spec-row"><span class="sk">Rejection</span><span class="sv">${p.rej} dBc</span></div>`;
+    else if (p.cat==='spl') specRows = `
+      <div class="spec-row"><span class="sk">Frequency</span><span class="sv">${p.flo}–${p.fhi} MHz</span></div>
+      <div class="spec-row"><span class="sk">Isolation</span><span class="sv">${p.iso} dB</span></div>
+      <div class="spec-row"><span class="sk">Excess IL</span><span class="sv">${p.il} dB</span></div>`;
+    else if (p.cat==='sw') specRows = `
+      <div class="spec-row"><span class="sk">Frequency</span><span class="sv">DC–${p.fhi} MHz</span></div>
+      <div class="spec-row"><span class="sk">Insertion Loss</span><span class="sv">${p.il} dB</span></div>
+      <div class="spec-row"><span class="sk">Switching Speed</span><span class="sv">${p.spd} ns</span></div>`;
+    grid.innerHTML += `<div class="prod-card" onclick="openChatPN('${p.pn}')">
+      <div class="prod-card-top">
+        <span class="prod-cat-badge">${CAT_LBL[p.cat]}</span>
+        <div class="prod-pn-big">${p.pn}</div>
+      </div>
+      <div class="prod-card-body">
+        <div class="stock-ok ${p.stock?'':'stock-no'}">${p.stock?'In Stock':'Check Availability'}</div>
+        <div class="prod-desc">${p.desc}</div>
+        <div class="spec-rows">${specRows}</div>
+        <div class="prod-foot">
+          <span class="prod-price">$${p.price} <span>/ ea.</span></span>
+          <button class="prod-add" onclick="event.stopPropagation();openChatPN('${p.pn}')">😊 Ask Minny</button>
+        </div>
+      </div>
+    </div>`;
+  });
+})();
+
+// ══════════════════════════════════════════════════
+//  SITE SEARCH
+// ══════════════════════════════════════════════════
+function siteSearch() {
+  const q = document.getElementById('modelSearch').value.trim();
+  if (!q) return;
+  openChat('Find me ' + q);
+}
+function siteSearch2() {
+  const q = document.getElementById('siteSearchInput').value.trim();
+  if (!q) return;
+  openChat('Tell me about ' + q);
+}
+
+// Carousel dots
+function activateDot(el){document.querySelectorAll('.np-dot').forEach(d=>d.classList.remove('active'));el.classList.add('active');}
+
+// Auto-hide subscribe popup after 8s
+setTimeout(()=>{const p=document.getElementById('subPopup');if(p&&!p.classList.contains('hidden'))p.classList.add('hidden');},8000);
+
+// ══════════════════════════════════════════════════
+//  CHAT WIDGET TOGGLE
+// ══════════════════════════════════════════════════
+let chatOpen = false, greeted = false;
+function toggleChat() {
+  chatOpen = !chatOpen;
+  const panel = document.getElementById('chatPanel');
+  const notif = document.getElementById('fabNotif');
+  panel.classList.toggle('open', chatOpen);
+  if (chatOpen) {
+    notif.style.display = 'none';
+    if (!greeted) { greeted = true; setTimeout(() => addMsg(rGreet(), false), 300); }
+  }
+}
+let chatMaximized = false;
+function toggleMaximize() {
+  chatMaximized = !chatMaximized;
+  const panel  = document.getElementById('chatPanel');
+  const btnN   = document.getElementById('maxBtnNormal');
+  panel.classList.toggle('maximized', chatMaximized);
+  if (btnN) { btnN.textContent = chatMaximized ? '⮾' : '⛶'; btnN.title = chatMaximized ? 'Minimize' : 'Maximize'; }
+  if (chatMaximized) loadCatalog();
+}
+
+// ══════════════════════════════════════════════════
+//  CATALOG BROWSER
+// ══════════════════════════════════════════════════
+let catalogData = [], catalogTab = 'all', catalogLoaded = false;
+
+const CAT_LABELS = {amp:'Amplifier',flt:'Filter',mix:'Mixer',att:'Attenuator',spl:'Splitter',sw:'Switch',xfmr:'Transformer/Balun',cpl:'Coupler',phs:'Phase Shifter',lim:'Limiter'};
+const CAT_COLORS = {amp:'#fee2e2:#991b1b',flt:'#ede9fe:#5b21b6',mix:'#dbeafe:#1e40af',att:'#fef3c7:#92400e',spl:'#d1fae5:#064e3b',sw:'#f1f5f9:#334155',xfmr:'#e0f2fe:#075985',cpl:'#fce7f3:#9d174d',phs:'#f0fdf4:#166534',lim:'#fff7ed:#c2410c'};
+
+function catStyle(cat) {
+  const c = (CAT_COLORS[cat]||'#f1f5f9:#334155').split(':');
+  return `background:${c[0]};color:${c[1]}`;
+}
+
+function specBlock(p) {
+  const rows = [];
+  if (p.flo != null && p.fhi != null) rows.push(['Freq', (p.flo === 0||p.flo==='DC' ? 'DC' : p.flo+'') + '–' + p.fhi + ' MHz']);
+  else if (p.rflo != null) rows.push(['RF', p.rflo+'–'+p.rfhi+' MHz']);
+  if (p.gain != null)   rows.push(['Gain', p.gain+' dB']);
+  if (p.nf   != null)   rows.push(['NF', p.nf+' dB']);
+  if (p.p1db != null)   rows.push(['P1dB', p.p1db+' dBm']);
+  if (p.il_db!= null)   rows.push(['IL', p.il_db+' dB']);
+  if (p.atten!= null)   rows.push(['Atten', p.atten+' dB']);
+  if (p.cvloss!=null)   rows.push(['Conv Loss', p.cvloss+' dB']);
+  if (p.iso  != null)   rows.push(['Iso', p.iso+' dB']);
+  if (p.impedance!=null)rows.push(['Imp', p.impedance]);
+  if (p.case_style)     rows.push(['Case', p.case_style]);
+  return rows.slice(0,4).map(r=>`<div class="cs-spec"><div class="cs-spec-l">${r[0]}</div><div class="cs-spec-v">${r[1]}</div></div>`).join('');
+}
+
+function renderCard(p) {
+  const label  = CAT_LABELS[p.cat] || p.cat;
+  const price  = p.price > 0 ? '$'+p.price.toFixed(2) : 'Quote';
+  const inStock = p.stock > 0;
+  return `<div class="cs-card" onclick="openChatPN('${p.pn}')">
+    <div class="cs-card-cat" style="${catStyle(p.cat)}">${label}</div>
+    <div class="cs-card-pn">${p.pn}</div>
+    <div class="cs-card-desc">${p.desc||p.subcat||''}</div>
+    <div class="cs-card-specs">${specBlock(p)}</div>
+    <div class="cs-card-footer">
+      <span class="cs-price">${price}</span>
+      <span class="cs-stock ${inStock?'in':'out'}">${inStock ? p.stock.toLocaleString()+' in stock' : 'Out of stock'}</span>
+      <button class="cs-ask-btn" onclick="event.stopPropagation();qSend('Tell me about ${p.pn}')">Ask Minny ⚡</button>
+    </div>
+  </div>`;
+}
+
+function renderGrid(data) {
+  const grid = document.getElementById('csGrid');
+  const count = document.getElementById('csCount');
+  if (!data.length) { grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#94a3b8;padding:40px">No products found.</div>'; count.textContent='0'; return; }
+  count.textContent = data.length.toLocaleString();
+  grid.innerHTML = data.slice(0, 200).map(renderCard).join('');
+}
+
+function filterCatalog() {
+  const q = (document.getElementById('csSearch').value||'').toLowerCase().trim();
+  let data = catalogTab === 'all' ? catalogData : catalogData.filter(p => p.cat === catalogTab);
+  if (q) data = data.filter(p => (p.pn||'').toLowerCase().includes(q)||(p.desc||'').toLowerCase().includes(q)||(p.subcat||'').toLowerCase().includes(q));
+  renderGrid(data);
+}
+
+function setTab(tab, el) {
+  catalogTab = tab;
+  document.querySelectorAll('.cs-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  filterCatalog();
+}
+
+async function loadCatalog() {
+  if (catalogLoaded) { filterCatalog(); return; }
+  try {
+    const res = await fetch('/api/products');
+    catalogData = await res.json();
+    catalogLoaded = true;
+    filterCatalog();
+  } catch(e) {
+    document.getElementById('csGrid').innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#e53e3e;padding:40px">Failed to load catalog.</div>';
+  }
+}
+function openChat(msg) {
+  if (!chatOpen) { chatOpen = true; document.getElementById('chatPanel').classList.add('open'); document.getElementById('fabNotif').style.display='none'; }
+  if (!greeted) { greeted = true; addMsg(rGreet(), false); setTimeout(() => qSend(msg), 600); }
+  else qSend(msg);
+}
+function openChatPN(pn) { openChat('Tell me about ' + pn); }
+
+// ══════════════════════════════════════════════════
+//  CONVERSATION HISTORY (for Claude context)
+// ══════════════════════════════════════════════════
+const conversationHistory = [];
+
+// ── Access passcode (set when the deployment is gated) ──────────────────────
+let ACCESS_CODE = sessionStorage.getItem('mc_ac') || '';
+function chatFetch(msg){
+  return fetch('/api/chat',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-access-code':ACCESS_CODE},
+    body:JSON.stringify({message:msg,history:conversationHistory.slice(-12)})
+  });
+}
+
+// ══════════════════════════════════════════════════
+//  RF MATH
+// ══════════════════════════════════════════════════
+const lin=db=>Math.pow(10,db/10), dB=v=>10*Math.log10(v), r2=v=>Math.round(v*100)/100;
+const dbm2mw=d=>Math.pow(10,d/10), mw2dbm=v=>10*Math.log10(v);
+function v2r(v){return -20*Math.log10((v-1)/(v+1));} function r2v(r){const g=Math.pow(10,-r/20);return(1+g)/(1-g);}
+function cascade(stages){let gdb=0,nfl=0,gl=1,o3=0;stages.forEach((s,i)=>{const g=lin(s.gain),n=lin(s.nf);gdb+=s.gain;nfl=i===0?n:nfl+(n-1)/gl;gl*=g;const o=dbm2mw(s.oip3||28);o3=i===0?o:1/(1/o3+1/(gl*o));});return{gain:r2(gdb),nf:r2(dB(nfl)),oip3:r2(mw2dbm(o3))};}
+
+// ══════════════════════════════════════════════════
+//  RESPONSE HANDLERS
+// ══════════════════════════════════════════════════
+function rGreet(){return`<div style="font-size:13.5px;">Heyyy!! ⚡🤖 I'm <strong>Minny</strong> — Mini-Circuits' cartoon robot RF sidekick! <em>*antennae wiggle excitedly*</em> I LOVE a good RF puzzle!! ✨</div><div style="margin:6px 0 4px;font-size:13px;font-weight:700;color:#F47920;">What are we building today? I'll ask the right questions to get you the PERFECT part! 🎯</div><div class="fgrid"><div class="fbox"><strong>🔍 Find a Part</strong><span>Tell me your use case — I'll ZAP the right one your way! ⚡</span></div><div class="fbox"><strong>🔄 Alternatives</strong><span>EOL or out of stock? <em>*spins catalog*</em> I got you! 🔄</span></div><div class="fbox"><strong>📊 RF Math</strong><span>VSWR, cascade NF, dBm conversions — PING! Calculated! 🎯</span></div><div class="fbox"><strong>🔧 Troubleshoot</strong><span>RF gremlins?? <em>*charges up*</em> Let's ZAP 'em together! 💥</span></div></div><div style="margin-top:10px;font-size:12px;color:#888;background:#f0f4ff;border-radius:8px;padding:7px 10px;">💬 Try: <em>"I need an LNA for 5G"</em> or <em>"Help me cascade two stages"</em> — I'll ask exactly what I need to help! 🤖⚡</div>`;}
+
+// ══════════════════════════════════════════════════
+//  CARD BUILDERS (used to render products from API)
+// ══════════════════════════════════════════════════
+function card(p,sp,isOrig,cmp){
+  sp=sp||{};
+  let pills='';
+  if(p.cat==='amp') pills=`<span class="sp${sp.maxNF&&p.nf<=sp.maxNF?' hi':''}">NF:${p.nf}dB</span><span class="sp">G:${p.gain}dB</span><span class="sp hi">P1dB:${p.p1o}dBm</span><span class="sp">${p.flo}–${p.fhi}MHz</span><span class="sp">${p.vcc}V/${p.icc}mA</span>`;
+  else if(p.cat==='flt') pills=`<span class="sp hi">IL:${p.il}dB</span><span class="sp">Rej:${p.rej}dBc</span><span class="sp">${p.flo||0}–${p.fhi}MHz</span>`;
+  else if(p.cat==='att') pills=`<span class="sp hi">${p.atten}dB</span><span class="sp">DC–${p.fhi}MHz</span><span class="sp">${p.pwr}mW</span>`;
+  else if(p.cat==='mix') pills=`<span class="sp hi">CL:${p.cvloss}dB</span><span class="sp">LO:${p.lopwr}dBm</span><span class="sp">IIP3:${p.iip3}dBm</span>`;
+  else if(p.cat==='spl') pills=`<span class="sp hi">IL:${p.il}dB</span><span class="sp">Iso:${p.iso}dB</span><span class="sp">${p.flo}–${p.fhi}MHz</span>`;
+  else if(p.cat==='sw')  pills=`<span class="sp hi">Iso:${p.iso}dB</span><span class="sp">${p.topo}</span><span class="sp">${p.spd}ns</span>`;
+  let diff='';
+  if(cmp&&p.cat==='amp'){const d=[];if(p.nf>cmp.nf)d.push(`NF +${Math.round((p.nf-cmp.nf)*100)/100}dB worse`);if(p.gain<cmp.gain)d.push(`Gain −${Math.round((cmp.gain-p.gain)*100)/100}dB`);if(p.p1o>cmp.p1o)d.push(`P1dB +${p.p1o-cmp.p1o}dBm better`);if(d.length)diff=`<div class="diffwarn">⚠️ vs. original: ${d.join(' · ')}</div>`;}
+  const stockVal = p.stock===1||p.stock===true;
+  return`<div class="pcard" onclick="qSend('Tell me about ${p.pn}')"><span class="ctag ${CAT_CLS[p.cat]}">${CAT_LBL[p.cat]}${isOrig?' — Original':''}</span><div class="pn">${p.pn}</div><div class="pdesc">${p.desc}</div><div class="spills">${pills}</div>${diff}<div class="prow"><span class="pprice">$${p.price}</span><span class="pstock ${stockVal?'':'no'}">${stockVal?'✓ In Stock':'✗ Check Avail.'}</span></div></div>`;
+}
+
+// ══════════════════════════════════════════════════
+//  CHAT UI ENGINE  (Claude-powered backend)
+// ══════════════════════════════════════════════════
+const MINNY_SM=`<svg class="cp-av-sm" viewBox="0 0 80 100" xmlns="http://www.w3.org/2000/svg"><line x1="40" y1="1" x2="40" y2="17" stroke="#F47920" stroke-width="2.5" stroke-linecap="round"/><circle cx="40" cy="1" r="3.5" fill="#F47920"/><rect x="11" y="17" width="58" height="42" rx="13" fill="#1C2951"/><ellipse cx="28" cy="35" rx="6.5" ry="6.5" fill="#F47920"/><ellipse cx="52" cy="35" rx="6.5" ry="6.5" fill="#F47920"/><ellipse cx="28" cy="35" rx="3.8" ry="3.8" fill="#fff"/><ellipse cx="52" cy="35" rx="3.8" ry="3.8" fill="#fff"/><ellipse cx="29.2" cy="33.8" rx="2" ry="2" fill="#1C2951"/><ellipse cx="53.2" cy="33.8" rx="2" ry="2" fill="#1C2951"/><path d="M 23 47 Q 40 57 57 47" stroke="#F47920" stroke-width="2.5" fill="none" stroke-linecap="round"/><rect x="11" y="60" width="58" height="36" rx="11" fill="#1C2951"/><rect x="20" y="65" width="40" height="24" rx="5" fill="#0A1220"/><text x="25" y="81" fill="#F47920" font-size="12" font-weight="900" font-family="Arial">MC</text></svg>`;
+const USER_AV=`<div class="cp-av-sm" style="background:#003087;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;width:32px;height:32px;">👤</div>`;
+
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+function addMsg(html,isUser,isTyping){
+  const chat=document.getElementById('cpChat');
+  const row=document.createElement('div');
+  if(isTyping){row.id='typing';row.className='typing-row';row.innerHTML=`${MINNY_SM}<div class="typing-bub"><div class="td"></div><div class="td"></div><div class="td"></div></div>`;}
+  else if(isUser){row.className='cp-row user';row.innerHTML=`<div class="cp-bubble user">${esc(html)}</div>${USER_AV}`;}
+  else{row.className='cp-row';row.innerHTML=`${MINNY_SM}<div class="cp-bubble bot">${html}</div>`;}
+  chat.appendChild(row);chat.scrollTop=chat.scrollHeight;return row;
+}
+
+// ── Escalation form ─────────────────────────────────
+let _escalationQuestion='';
+
+function showEscalationForm(question){
+  _escalationQuestion=question;
+  const chat=document.getElementById('cpChat');
+  const row=document.createElement('div');
+  row.className='cp-row';
+  row.id='escalation-form-row';
+  row.innerHTML=`${MINNY_SM}<div class="cp-bubble bot">
+    <div style="margin-bottom:8px;">📬 <strong>No problem at all!</strong> <em>*opens comms channel*</em> Let me loop in the Mini-Circuits team — they'll ZAP you an answer! ⚡🤖</div>
+    <div style="display:flex;flex-direction:column;gap:7px;" id="esc-form">
+      <input id="esc-name"    placeholder="Your name *"          style="border:1px solid #ddd;border-radius:6px;padding:7px 10px;font-size:12px;outline:none;" />
+      <input id="esc-company" placeholder="Company (optional)"   style="border:1px solid #ddd;border-radius:6px;padding:7px 10px;font-size:12px;outline:none;" />
+      <input id="esc-email"   placeholder="Your Gmail address *" type="email" style="border:1px solid #ddd;border-radius:6px;padding:7px 10px;font-size:12px;outline:none;" />
+      <button onclick="submitEscalation()" style="background:#F47920;color:#fff;border:none;border-radius:6px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='#d96a10'" onmouseout="this.style.background='#F47920'">
+        ⚡ Send to Mini-Circuits Team
+      </button>
+    </div>
+  </div>`;
+  chat.appendChild(row);chat.scrollTop=chat.scrollHeight;
+}
+
+async function submitEscalation(){
+  const name    = document.getElementById('esc-name')?.value.trim();
+  const company = document.getElementById('esc-company')?.value.trim();
+  const email   = document.getElementById('esc-email')?.value.trim();
+
+  if(!name){alert('Please enter your name!');return;}
+  if(!email||!email.includes('@')){alert('Please enter a valid email address!');return;}
+
+  // Build conversation context (last 6 turns)
+  const ctx = conversationHistory.slice(-6).map(m=>`[${m.role.toUpperCase()}]: ${m.content}`).join('\n');
+
+  const btn=document.querySelector('#esc-form button');
+  if(btn){btn.textContent='Sending… ⚡';btn.disabled=true;}
+
+  try{
+    const resp=await fetch('/api/escalate',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-access-code':ACCESS_CODE},
+      body:JSON.stringify({name,company,userEmail:email,question:_escalationQuestion,context:ctx})
+    });
+    document.getElementById('escalation-form-row')?.remove();
+    if(resp.ok){
+      addMsg(`<div>✅ <strong>Message sent, ${esc(name)}!</strong> <em>*does happy robot wiggle*</em> The Mini-Circuits team will reach out to <strong>${esc(email)}</strong> soon! ⚡🤖🎉</div>`,false);
+    } else {
+      const e=await resp.json().catch(()=>({}));
+      addMsg(`<div style="color:#c00;">😬 Hmm, the email zap misfired! (${esc(e.message||'unknown error')}) Try emailing <strong>k.revanth123@gmail.com</strong> directly! 📧</div>`,false);
+    }
+  }catch(e){
+    document.getElementById('escalation-form-row')?.remove();
+    addMsg(`<div style="color:#c00;">😬 Couldn't reach the server! Try emailing <strong>k.revanth123@gmail.com</strong> directly! 📧</div>`,false);
+  }
+}
+
+async function doSend(){
+  const el=document.getElementById('cpInput');
+  const msg=el.value.trim();if(!msg)return;
+  el.value='';el.style.height='auto';
+  addMsg(msg,true);
+  conversationHistory.push({role:'user',content:msg});
+  addMsg('',false,true);
+
+  try{
+    let resp=await chatFetch(msg);
+    // Passcode-protected deployment: prompt once and retry.
+    if(resp.status===401){
+      ACCESS_CODE=(window.prompt('🔒 This assistant is passcode-protected. Enter the access passcode:')||'').trim();
+      sessionStorage.setItem('mc_ac',ACCESS_CODE);
+      resp=await chatFetch(msg);
+    }
+    document.getElementById('typing')?.remove();
+
+    if(!resp.ok){
+      const err=await resp.json().catch(()=>({}));
+      const errMsg=resp.status===401?'Incorrect passcode — refresh and try again.':(err.message||`Server error ${resp.status}`);
+      addMsg(`<div style="padding:8px 10px;background:#fff5f5;border-radius:8px;border-left:3px solid #e53e3e;">⚡😬 <strong>Minny hit a snag!</strong> ${esc(errMsg)}</div>`,false);
+      return;
+    }
+
+    const data=await resp.json();
+    let reply=data.reply;
+
+    // Check for escalation signal
+    const needsHuman=reply.includes('[NEEDS_HUMAN]');
+    reply=reply.replace(/\[NEEDS_HUMAN\]/g,'').trim();
+
+    let html=reply;
+
+    // Append product cards for any parts Claude mentioned
+    if(data.products&&data.products.length){
+      html+=`<div style="margin-top:10px;">`;
+      data.products.slice(0,4).forEach(p=>{html+=card(p,{});});
+      html+=`</div>`;
+    }
+
+    addMsg(html,false);
+    conversationHistory.push({role:'assistant',content:reply});
+
+    // Show escalation form after message renders
+    if(needsHuman){
+      setTimeout(()=>showEscalationForm(msg),200);
+    }
+
+  }catch(err){
+    document.getElementById('typing')?.remove();
+    addMsg(`<div style="padding:9px 11px;background:#fff5f5;border-radius:8px;border-left:3px solid #e53e3e;">
+      ⚡😬 <strong>Minny's backend is offline!</strong><br><br>
+      Start the server first:<br>
+      <code style="background:#f0f0f0;padding:2px 7px;border-radius:4px;font-size:11px;display:inline-block;margin-top:4px;">npm install &amp;&amp; node db/seed.js &amp;&amp; npm start</code><br><br>
+      Then open <strong>http://localhost:3000</strong> instead of this file directly! 💪⚡
+    </div>`,false);
+  }
+}
+
+function qSend(txt){
+  if(!chatOpen)toggleChat();
+  if(!greeted){greeted=true;addMsg(rGreet(),false);setTimeout(()=>{document.getElementById('cpInput').value=txt;doSend();},600);}
+  else{document.getElementById('cpInput').value=txt;doSend();}
+}
+
+document.getElementById('cpInput').addEventListener('input',function(){this.style.height='auto';this.style.height=Math.min(this.scrollHeight,90)+'px';});
+document.getElementById('cpInput').addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();doSend();}});
+</script>
+</body>
+</html>

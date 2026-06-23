@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Minny — Mini-Circuits AI Assistant</title>
+<style>
+:root {
+  --orange: #FF6B00;
+  --navy:   #1C2951;
+  --dark:   #0F1929;
+  --teal:   #00C48C;
+  --light:  #F0F4F8;
+  --border: #E2E8F0;
+  --text:   #1a202c;
+  --muted:  #718096;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+     background:var(--dark);height:100vh;display:flex;flex-direction:column;overflow:hidden}
+
+/* ── HEADER ── */
+.header{background:linear-gradient(135deg,#1C2951 0%,#243b6e 100%);
+  padding:10px 18px;display:flex;align-items:center;gap:14px;
+  border-bottom:2.5px solid var(--orange);flex-shrink:0;
+  box-shadow:0 2px 12px rgba(0,0,0,.35)}
+.hdr-avatar{width:56px;height:56px;flex-shrink:0}
+.hdr-info h1{color:#fff;font-size:18px;font-weight:800;letter-spacing:-.02em}
+.hdr-info h1 span{color:var(--orange);font-size:12px;font-weight:500;margin-left:6px}
+.hdr-tagline{color:#8fa3cc;font-size:11.5px;margin-top:2px;display:flex;align-items:center;gap:5px}
+.dot{width:7px;height:7px;background:var(--teal);border-radius:50%;animation:pulse 2s infinite}
+.hdr-badges{margin-left:auto;display:flex;gap:6px}
+.hbadge{background:rgba(255,255,255,.08);color:#c0cde8;font-size:10px;font-weight:600;
+  padding:3px 9px;border-radius:12px;border:1px solid rgba(255,255,255,.15)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.15}}
+.blink{animation:blink 1.6s infinite}
+
+/* ── CHAT ── */
+.chat{flex:1;overflow-y:auto;padding:18px 16px;background:var(--light);
+  display:flex;flex-direction:column;gap:14px}
+.chat::-webkit-scrollbar{width:4px}
+.chat::-webkit-scrollbar-thumb{background:#c4cdd8;border-radius:2px}
+
+/* ── MESSAGE ROW ── */
+.row{display:flex;gap:9px;align-items:flex-end;max-width:100%}
+.row.user{flex-direction:row-reverse}
+.av-sm{width:36px;height:36px;flex-shrink:0}
+.bubble{max-width:76%;padding:11px 15px;border-radius:18px;font-size:13.5px;line-height:1.55}
+.bubble.bot{background:#fff;color:var(--text);border-bottom-left-radius:4px;
+  box-shadow:0 2px 10px rgba(0,0,0,.08)}
+.bubble.user{background:var(--navy);color:#fff;border-bottom-right-radius:4px}
+
+/* ── TYPING ── */
+.typing-wrap{padding:10px 14px;display:flex;gap:5px;align-items:center}
+.td{width:7px;height:7px;background:var(--orange);border-radius:50%;animation:tdot 1.4s infinite}
+.td:nth-child(2){animation-delay:.2s}.td:nth-child(3){animation-delay:.4s}
+@keyframes tdot{0%,80%,100%{transform:scale(1);opacity:.5}40%{transform:scale(1.25);opacity:1}}
+
+/* ── PRODUCT CARD ── */
+.pcard{background:#f7fafc;border:1.5px solid var(--border);border-radius:10px;
+  padding:10px 12px;margin-top:7px;cursor:pointer;transition:border-color .15s,transform .1s}
+.pcard:hover{border-color:var(--orange);transform:translateY(-1px)}
+.pn{font-weight:800;color:var(--navy);font-size:13px;font-family:'Courier New',monospace}
+.pdesc{font-size:11.5px;color:var(--muted);margin-top:2px}
+.spills{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}
+.sp{background:#e8edf5;color:var(--navy);font-size:10px;font-weight:600;
+  padding:2px 7px;border-radius:7px}
+.sp.hi{background:#fff3e6;color:#b84500}
+.prow{display:flex;justify-content:space-between;align-items:center;margin-top:7px}
+.price{font-weight:700;color:var(--teal);font-size:12.5px}
+.stock-y{font-size:10.5px;color:#38a169;font-weight:600}
+.stock-n{font-size:10.5px;color:#e53e3e;font-weight:600}
+.ctag{display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;
+  letter-spacing:.06em;padding:2px 7px;border-radius:4px;margin-bottom:5px}
+.c-amp{background:#fee2e2;color:#991b1b}
+.c-flt{background:#ede9fe;color:#5b21b6}
+.c-mix{background:#dbeafe;color:#1e40af}
+.c-att{background:#fef3c7;color:#92400e}
+.c-spl{background:#d1fae5;color:#064e3b}
+.c-sw {background:#f3f4f6;color:#374151}
+
+/* ── CALC BOX ── */
+.cbox{background:linear-gradient(135deg,#1C2951,#243b6e);border-radius:10px;
+  padding:12px 14px;margin-top:8px;color:#fff}
+.cbox-title{font-size:10px;text-transform:uppercase;letter-spacing:.08em;opacity:.65;margin-bottom:3px}
+.cbox-val{font-size:24px;font-weight:800;color:var(--orange);font-family:'Courier New',monospace}
+.cbox-form{font-size:10px;opacity:.55;margin-top:4px;font-family:'Courier New',monospace}
+.cgrid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:8px}
+.ci{background:rgba(255,255,255,.08);border-radius:6px;padding:6px 9px}
+.ci-l{font-size:9px;text-transform:uppercase;opacity:.6;letter-spacing:.05em}
+.ci-v{font-size:15px;font-weight:700;color:var(--orange);font-family:monospace}
+
+/* ── CASCADE TABLE ── */
+.ctbl{width:100%;border-collapse:collapse;font-size:11px;margin-top:6px}
+.ctbl th{background:rgba(255,255,255,.1);padding:5px 8px;text-align:left;
+  font-weight:700;font-size:10px;text-transform:uppercase}
+.ctbl td{padding:5px 8px;border-top:1px solid rgba(255,255,255,.07)}
+.ctbl tr:last-child td{color:var(--orange);font-weight:700;border-top:1px solid rgba(255,255,255,.25)}
+
+/* ── TROUBLESHOOT STEPS ── */
+.tstep{display:flex;gap:10px;padding:7px 0;border-bottom:1px solid #edf2f7}
+.tstep:last-child{border-bottom:none}
+.tsnum{width:22px;height:22px;background:var(--orange);color:#fff;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-top:2px}
+.tstxt{font-size:12.5px;color:var(--text);line-height:1.55}
+
+/* ── FEATURE GRID ── */
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
+.fbox{background:#f0f4ff;border-radius:8px;padding:7px 9px;font-size:12px}
+.fbox strong{display:block;font-size:12.5px;margin-bottom:2px}
+.fbox span{color:var(--muted);font-size:11px}
+
+/* ── SECTION LABEL ── */
+.seclab{font-size:11px;font-weight:700;color:var(--orange);text-transform:uppercase;
+  letter-spacing:.06em;margin-top:8px;margin-bottom:4px}
+
+/* ── SPEC TABLE ── */
+.spectbl{width:100%;border-collapse:collapse;font-size:12px;
+  border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-top:8px}
+.spectbl thead tr{background:var(--navy)}
+.spectbl thead th{color:#fff;padding:6px 10px;text-align:left;font-size:11px}
+.spectbl tbody tr:nth-child(even){background:#f7fafc}
+.spectbl td{padding:5px 10px;color:var(--muted)}
+.spectbl td:last-child{font-weight:600;color:var(--text)}
+
+/* ── DIFF WARN ── */
+.diffwarn{font-size:10.5px;color:#c05000;margin-top:4px}
+
+/* ── INPUT AREA ── */
+.inputarea{background:#fff;border-top:1px solid var(--border);padding:10px 14px;flex-shrink:0}
+.chips{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:9px}
+.chip{background:#f0f4ff;color:var(--navy);border:1.5px solid #d6e0ff;border-radius:15px;
+  padding:4px 10px;font-size:11.5px;font-weight:600;cursor:pointer;white-space:nowrap;
+  transition:all .12s}
+.chip:hover{background:var(--navy);color:#fff;border-color:var(--navy)}
+.irow{display:flex;gap:8px;align-items:flex-end}
+.tinput{flex:1;border:1.5px solid var(--border);border-radius:22px;padding:10px 16px;
+  font-size:13.5px;outline:none;transition:border-color .15s;resize:none;
+  max-height:100px;overflow-y:auto;line-height:1.45;font-family:inherit}
+.tinput:focus{border-color:var(--orange)}
+.sendbtn{width:42px;height:42px;background:var(--orange);border:none;border-radius:50%;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:transform .1s,background .15s;flex-shrink:0}
+.sendbtn:hover{background:#e05800;transform:scale(1.06)}
+.sendbtn:active{transform:scale(.95)}
+.sendbtn svg{fill:#fff}
+
+@media(max-width:480px){.bubble{max-width:88%}.hdr-badges{display:none}}
+</style>
+</head>
+<body>
+
+<!-- ══ HEADER ══════════════════════════════════════════════════════════ -->
+<div class="header">
+  <!-- Minny SVG Avatar -->
+  <svg class="hdr-avatar" viewBox="0 0 80 100" xmlns="http://www.w3.org/2000/svg">
+    <!-- antenna -->
+    <line x1="40" y1="1" x2="40" y2="17" stroke="#FF6B00" stroke-width="2.5" stroke-linecap="round"/>
+    <circle cx="40" cy="1" r="3.5" fill="#FF6B00" class="blink"/>
+    <!-- head -->
+    <rect x="11" y="17" width="58" height="42" rx="13" fill="#1C2951"/>
+    <!-- circuit trace deco -->
+    <line x1="17" y1="29" x2="30" y2="29" stroke="#FF6B00" stroke-width="1" opacity=".35"/>
+    <circle cx="16" cy="29" r="2" fill="none" stroke="#FF6B00" stroke-width="1" opacity=".35"/>
+    <line x1="50" y1="29" x2="63" y2="29" stroke="#FF6B00" stroke-width="1" opacity=".35"/>
+    <circle cx="64" cy="29" r="2" fill="none" stroke="#FF6B00" stroke-width="1" opacity=".35"/>
+    <!-- eye glow -->
+    <ellipse cx="28" cy="35" rx="9" ry="9" fill="#FF6B00" opacity=".12"/>
+    <ellipse cx="52" cy="35" rx="9" ry="9" fill="#FF6B00" opacity=".12"/>
+    <!-- eyes -->
+    <ellipse cx="28" cy="35" rx="6.5" ry="6.5" fill="#FF6B00"/>
+    <ellipse cx="52" cy="35" rx="6.5" ry="6.5" fill="#FF6B00"/>
+    <ellipse cx="28" cy="35" rx="3.8" ry="3.8" fill="#fff"/>
+    <ellipse cx="52" cy="35" rx="3.8" ry="3.8" fill="#fff"/>
+    <ellipse cx="29.2" cy="33.8" rx="2" ry="2" fill="#1C2951"/>
+    <ellipse cx="53.2" cy="33.8" rx="2" ry="2" fill="#1C2951"/>
+    <circle cx="30.2" cy="33.1" r=".7" fill="#fff"/>
+    <circle cx="54.2" cy="33.1" r=".7" fill="#fff"/>
+    <!-- grill -->
+    <rect x="22" y="48" width="36" height="6" rx="3" fill="#0F1929" opacity=".7"/>
+    <line x1="27" y1="48" x2="27" y2="54" stroke="#FF6B00" stroke-width=".8" opacity=".6"/>
+    <line x1="33" y1="48" x2="33" y2="54" stroke="#FF6B00" stroke-width=".8" opacity=".6"/>
+    <line x1="39" y1="48" x2="39" y2="54" stroke="#FF6B00" stroke-width=".8" opacity=".6"/>
+    <line x1="45" y1="48" x2="45" y2="54" stroke="#FF6B00" stroke-width=".8" opacity=".6"/>
+    <line x1="51" y1="48" x2="51" y2="54" stroke="#FF6B00" stroke-width=".8" opacity=".6"/>
+    <!-- arms -->
+    <rect x="1"  y="62" width="11" height="22" rx="5.5" fill="#1C2951"/>
+    <rect x="68" y="62" width="11" height="22" rx="5.5" fill="#1C2951"/>
+    <!-- body -->
+    <rect x="11" y="60" width="58" height="36" rx="11" fill="#1C2951"/>
+    <!-- chest screen -->
+    <rect x="20" y="65" width="40" height="24" rx="5" fill="#0A1220"/>
+    <text x="28" y="80" fill="#FF6B00" font-size="11" font-weight="900" font-family="Arial">M</text>
+    <text x="42" y="80" fill="#FF6B00" font-size="11" font-weight="900" font-family="Arial">C</text>
+    <!-- feet lights -->
+    <circle cx="28" cy="97" r="3" fill="#00C48C"/>
+    <circle cx="40" cy="97" r="3" fill="#FF6B00" class="blink"/>
+    <circle cx="52" cy="97" r="3" fill="#00C48C"/>
+  </svg>
+
+  <div class="hdr-info">
+    <h1>Minny <span>by Mini-Circuits</span></h1>
+    <div class="hdr-tagline">
+      <div class="dot"></div>
+      Your RF Expert — Always On Frequency!
+    </div>
+  </div>
+  <div class="hdr-badges">
+    <span class="hbadge">🔍 Product Finder</span>
+    <span class="hbadge">📊 S-Param Calc</span>
+    <span class="hbadge">🔧 Troubleshoot</span>
+  </div>
+</div>
+
+<!-- ══ CHAT ══════════════════════════════════════════════════════════════ -->
+<div class="chat" id="chat"></div>
+
+<!-- ══ INPUT ══════════════════════════════════════════════════════════════ -->
+<div class="inputarea">
+  <div class="chips">
+    <div class="chip" onclick="quickSend('Find me an LNA for 2.4 GHz, noise figure under 2 dB')">🔍 Find LNA</div>
+    <div class="chip" onclick="quickSend('What are alternatives to ERA-2+?')">🔄 Alternatives</div>
+    <div class="chip" onclick="quickSend('What is the P1dB and noise figure of ZX60-V82+?')">📋 Product Q&amp;A</div>
+    <div class="chip" onclick="quickSend('My amplifier is oscillating, how do I fix it?')">🔧 Troubleshoot</div>
+    <div class="chip" onclick="quickSend('Cascade analysis: PHA-1H+ then ERA-2+')">⛓ Cascade NF</div>
+    <div class="chip" onclick="quickSend('Convert VSWR 1.8 to return loss')">📡 VSWR → RL</div>
+    <div class="chip" onclick="quickSend('Convert 23 dBm to milliwatts')">⚡ dBm → mW</div>
+  </div>
+  <div class="irow">
+    <textarea class="tinput" id="tinput" rows="1"
+      placeholder="Ask Minny about products, specs, calculations, troubleshooting…"></textarea>
+    <button class="sendbtn" onclick="doSend()">
+      <svg width="18" height="18" viewBox="0 0 24 24"><path d="M2 21L23 12 2 3v7l15 2-15 2z"/></svg>
+    </button>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════
+//  PRODUCT DATABASE
+// ═══════════════════════════════════════════════════
+const DB = [
+  // ── AMPLIFIERS ──────────────────────────────────
+  { pn:'ZX60-V82+',   cat:'amp', type:'gain_block', flo:300,  fhi:8000, gain:17.0, nf:2.7, p1o:20,  oip3:32, vcc:5,   icc:68,  pkg:'SMA Coaxial',  price:18.95, stock:true,  desc:'Wideband Gain Block, 0.3–8 GHz' },
+  { pn:'ERA-2+',      cat:'amp', type:'gain_block', flo:0,    fhi:6000, gain:15.6, nf:3.4, p1o:12.5,oip3:23, vcc:3.5, icc:35,  pkg:'SMT SOT-89',   price:3.95,  stock:true,  desc:'MMIC Cascadable Gain Block, DC–6 GHz' },
+  { pn:'ERA-6+',      cat:'amp', type:'gain_block', flo:0,    fhi:4000, gain:11.5, nf:3.4, p1o:18.5,oip3:29, vcc:5,   icc:90,  pkg:'SMT SOT-89',   price:4.95,  stock:true,  desc:'High-Power MMIC Gain Block, DC–4 GHz' },
+  { pn:'PHA-1H+',     cat:'amp', type:'lna',        flo:50,   fhi:6000, gain:20.0, nf:1.7, p1o:18,  oip3:29, vcc:5,   icc:55,  pkg:'SMT QFN-16',   price:8.95,  stock:true,  desc:'Low Noise Amplifier, 0.05–6 GHz, NF=1.7 dB' },
+  { pn:'ZX60-83LN+',  cat:'amp', type:'lna',        flo:700,  fhi:8300, gain:20.5, nf:1.4, p1o:14,  oip3:27, vcc:5,   icc:75,  pkg:'SMA Coaxial',  price:39.95, stock:true,  desc:'Low Noise Amplifier, 0.7–8.3 GHz, NF=1.4 dB' },
+  { pn:'ZVA-213-S+',  cat:'amp', type:'driver',     flo:20,   fhi:13000,gain:14.0, nf:3.5, p1o:22,  oip3:33, vcc:5,   icc:250, pkg:'SMA Coaxial',  price:149.95,stock:false, desc:'Wideband Driver Amplifier, 0.02–13 GHz' },
+  { pn:'GVA-81+',     cat:'amp', type:'gain_block', flo:0,    fhi:6000, gain:12.5, nf:4.0, p1o:20,  oip3:32, vcc:5,   icc:110, pkg:'SMT SOT-89',   price:5.95,  stock:true,  desc:'High-IP3 MMIC Gain Block, DC–6 GHz' },
+  { pn:'ZX60-14012L+',cat:'amp', type:'lna',        flo:300,  fhi:14000,gain:12.0, nf:2.5, p1o:16,  oip3:28, vcc:5,   icc:100, pkg:'SMA Coaxial',  price:59.95, stock:true,  desc:'Broadband LNA, 0.3–14 GHz, NF=2.5 dB' },
+  // ── FILTERS ─────────────────────────────────────
+  { pn:'BFCN-1445+',  cat:'flt', type:'bandpass',   flo:1400, fhi:1490, il:1.2, rej:35, rl:15, pkg:'SMT 0805', price:2.95, stock:true,  desc:'Ceramic BPF, 1400–1490 MHz (GPS L1)' },
+  { pn:'ZFBP-2400+',  cat:'flt', type:'bandpass',   flo:2400, fhi:2500, il:1.5, rej:30, rl:14, pkg:'SMA Coaxial',price:24.95,stock:true, desc:'Bandpass Filter, 2.4–2.5 GHz (WiFi/ISM)' },
+  { pn:'SLP-50+',     cat:'flt', type:'lowpass',    flo:0,    fhi:50,   il:0.3, rej:40, rl:18, pkg:'SMT 0805', price:1.95, stock:true,  desc:'LTCC Lowpass Filter, fc = 50 MHz' },
+  { pn:'SHP-100+',    cat:'flt', type:'highpass',   flo:100,  fhi:6000, il:0.4, rej:38, rl:17, pkg:'SMT 0805', price:2.25, stock:true,  desc:'LTCC Highpass Filter, fc = 100 MHz' },
+  { pn:'ZVBP-6-23+',  cat:'flt', type:'bandpass',   flo:5800, fhi:6400, il:1.8, rej:28, rl:13, pkg:'SMA Coaxial',price:34.95,stock:true, desc:'Bandpass Filter, 5.8–6.4 GHz (C-band)' },
+  // ── MIXERS ──────────────────────────────────────
+  { pn:'ZX05-C42MH+', cat:'mix', rflo:2000, rfhi:4200, ifhi:1500, cvloss:6.5, lopwr:10, iip3:13, pkg:'SMA Coaxial', price:54.95, stock:true,  desc:'Double Balanced Mixer, RF 2–4.2 GHz' },
+  { pn:'ADE-1+',      cat:'mix', rflo:500,  rfhi:500,  ifhi:500,  cvloss:5.0, lopwr:7,  iip3:15, pkg:'SMT SOIC-8', price:7.95,  stock:true,  desc:'Double Balanced Mixer, 0.5–500 MHz' },
+  { pn:'ZEM-4300MH+', cat:'mix', rflo:1700, rfhi:4300, ifhi:2000, cvloss:7.0, lopwr:13, iip3:14, pkg:'SMA Coaxial', price:69.95, stock:true,  desc:'Double Balanced Mixer, 1.7–4.3 GHz' },
+  // ── ATTENUATORS ─────────────────────────────────
+  { pn:'VAT-3+',      cat:'att', atten:3,  fhi:6000, pwr:1000, vswr:1.20, pkg:'SMA Coaxial', price:12.95, stock:true,  desc:'Fixed Attenuator, 3 dB, DC–6 GHz' },
+  { pn:'VAT-6+',      cat:'att', atten:6,  fhi:6000, pwr:1000, vswr:1.22, pkg:'SMA Coaxial', price:12.95, stock:true,  desc:'Fixed Attenuator, 6 dB, DC–6 GHz' },
+  { pn:'VAT-10+',     cat:'att', atten:10, fhi:6000, pwr:1000, vswr:1.25, pkg:'SMA Coaxial', price:12.95, stock:true,  desc:'Fixed Attenuator, 10 dB, DC–6 GHz' },
+  { pn:'BW-S3W2+',    cat:'att', atten:3,  fhi:3000, pwr:2000, vswr:1.35, pkg:'SMA Coaxial', price:9.95,  stock:true,  desc:'High Power Attenuator, 3 dB, 2 W, DC–3 GHz' },
+  // ── SPLITTERS ───────────────────────────────────
+  { pn:'ZFSC-2-2500+',cat:'spl', ways:2, flo:2, fhi:2500, il:3.5, iso:22, aba:0.3, phb:2, pkg:'SMA Coaxial',  price:18.95, stock:true,  desc:'2-Way 0° Splitter/Combiner, 2–2500 MHz' },
+  { pn:'ZX10-2-12+',  cat:'spl', ways:2, flo:2, fhi:2000, il:3.2, iso:20, aba:0.2, phb:1.5,pkg:'SMA Coaxial', price:16.95, stock:true,  desc:'2-Way Splitter/Combiner, 0.02–2 GHz' },
+  { pn:'ZFRSC-183+',  cat:'spl', ways:2, flo:2, fhi:18300,il:4.0, iso:18, aba:0.5, phb:3,  pkg:'SMA Coaxial', price:89.95, stock:true,  desc:'Wideband 2-Way Splitter, 0.002–18.3 GHz' },
+  { pn:'ZN2PD-9G+',   cat:'spl', ways:2, flo:2000,fhi:9000,il:3.8,iso:20,aba:0.4, phb:3,  pkg:'SMA Coaxial', price:49.95, stock:true,  desc:'Wideband 2-Way Power Divider, 2–9 GHz' },
+  // ── SWITCHES ────────────────────────────────────
+  { pn:'ZYSWA-2-50DR+',cat:'sw', topo:'SPDT', fhi:5000,  il:0.5, iso:60, p1db:30, spd:1,   ctlv:3.3, pkg:'SMT QFN-16', price:14.95, stock:true,  desc:'Ultra-Fast SPDT Switch, DC–5 GHz, 1 ns' },
+  { pn:'ZASWA-2-50DR+',cat:'sw', topo:'SPDT', fhi:6000,  il:0.6, iso:55, p1db:31, spd:1.5, ctlv:3.3, pkg:'SMT QFN-16', price:16.95, stock:true,  desc:'SPDT Absorptive Switch, DC–6 GHz, 1.5 ns' },
+];
+
+// ═══════════════════════════════════════════════════
+//  INTENT DETECTION
+// ═══════════════════════════════════════════════════
+function intent(msg) {
+  const m = msg.toLowerCase();
+  if (/alternative|replace|substitute|instead of|similar to|eol|end.of.life|out.of.stock|swap/i.test(m)) return 'alt';
+  if (/cascade|chain|friis|link budget|total nf|system nf/i.test(m)) return 'cascade';
+  if (/vswr|return loss|reflection coeff|s11|s22|mismatch/i.test(m)) return 'vswr';
+  if (/dbm.*(mw|milliwatt|watt)|mw.*(dbm)|power.*convert|convert.*power/i.test(m)) return 'pwr';
+  if (/troubleshoot|oscillat|problem|issue|failure|not working|broken|fix|help.*amp|help.*filter|diagnostic/i.test(m)) return 'ts';
+  if (findPart(msg) && /p1db|nf|noise|gain|ip3|spec|datasheet|insertion|return loss|frequency|supply|current|voltage/i.test(m)) return 'qa';
+  if (findPart(msg)) return 'qa';
+  if (/find|need|looking for|search|recommend|suggest|want|give me|help me find|i need/i.test(m)) return 'find';
+  return 'gen';
+}
+
+function findPart(msg) {
+  const up = msg.toUpperCase();
+  return DB.find(p => up.includes(p.pn.replace('+','').toUpperCase()) || up.includes(p.pn.toUpperCase()));
+}
+
+function extractSpecs(msg) {
+  const m = msg.toLowerCase(), s = {};
+  let f = m.match(/(\d+(?:\.\d+)?)\s*(?:to|-)\s*(\d+(?:\.\d+)?)\s*(ghz|mhz)/);
+  if (f) { const k = f[3]==='ghz'?1000:1; s.flo = +f[1]*k; s.fhi = +f[2]*k; }
+  else {
+    f = m.match(/(\d+(?:\.\d+)?)\s*(ghz|mhz)/);
+    if (f) { const v = +f[1]*(f[2]==='ghz'?1000:1); s.flo=v*.8; s.fhi=v*1.2; s.fc=v; }
+  }
+  const nf = m.match(/nf\s*(?:under|below|less than|<|of)?\s*(\d+(?:\.\d+)?)\s*db/);
+  if (nf) s.maxNF = +nf[1];
+  const gn = m.match(/gain\s*(?:of|above|at least|≥|>)?\s*(\d+(?:\.\d+)?)\s*db/);
+  if (gn) s.minGain = +gn[1];
+  if (/\blna\b|low.noise amp/.test(m)) s.type = 'lna';
+  if (/gain.block/.test(m)) s.type = 'gain_block';
+  if (/\bfilter\b/.test(m)) s.cat = 'flt';
+  if (/\bmixer\b/.test(m)) s.cat = 'mix';
+  if (/\battenuator|atten\b/.test(m)) s.cat = 'att';
+  if (/\bsplitter|divider|combiner\b/.test(m)) s.cat = 'spl';
+  if (/\bswitch\b/.test(m)) s.cat = 'sw';
+  if (/\bamp/.test(m)) s.cat = 'amp';
+  return s;
+}
+
+// ═══════════════════════════════════════════════════
+//  PRODUCT SEARCH
+// ═══════════════════════════════════════════════════
+function searchDB(specs) {
+  let r = [...DB];
+  if (specs.cat)  r = r.filter(p => p.cat === specs.cat);
+  if (specs.type) r = r.filter(p => p.type === specs.type);
+  if (specs.flo && specs.fhi) {
+    r = r.filter(p => {
+      const lo = p.flo ?? p.rflo ?? 0;
+      const hi = p.fhi ?? p.rfhi ?? 0;
+      return lo <= specs.flo && hi >= specs.fhi;
+    });
+  }
+  if (specs.maxNF)  r = r.filter(p => p.nf  != null && p.nf  <= specs.maxNF);
+  if (specs.minGain)r = r.filter(p => p.gain != null && p.gain>= specs.minGain);
+  return r.map(p => ({...p, _score: score(p, specs)}))
+           .sort((a,b) => b._score - a._score)
+           .slice(0, 4);
+}
+
+function score(p, s) {
+  let v = 100;
+  if (s.maxNF  && p.nf)   v += (s.maxNF  - p.nf)  * 12;
+  if (s.minGain && p.gain) v += (p.gain - s.minGain) * 3;
+  if (p.stock) v += 25;
+  return v;
+}
+
+// ═══════════════════════════════════════════════════
+//  RF MATH (deterministic — no LLM guessing!)
+// ═══════════════════════════════════════════════════
+const lin = db  => Math.pow(10, db/10);
+const dB  = v   => 10*Math.log10(v);
+const dbm2mw = d => Math.pow(10, d/10);
+const mw2dbm = v => 10*Math.log10(v);
+const r2 = v  => Math.round(v*100)/100;
+
+function vswr2rl(v)  { return -20*Math.log10((v-1)/(v+1)); }
+function rl2vswr(rl) { const g=Math.pow(10,-rl/20); return (1+g)/(1-g); }
+
+function cascade(stages) {
+  let gdb=0, nflin=0, glin=1, oip3_total=0;
+  stages.forEach((s,i) => {
+    const g = lin(s.gain), nfl = lin(s.nf);
+    gdb += s.gain;
+    nflin = i===0 ? nfl : nflin + (nfl-1)/glin;
+    glin *= g;
+    const o3 = dbm2mw(s.oip3||28);
+    oip3_total = i===0 ? o3 : 1/(1/oip3_total + 1/(glin*o3));
+  });
+  return { gain:r2(gdb), nf:r2(dB(nflin)), oip3:r2(mw2dbm(oip3_total)) };
+}
+
+// ═══════════════════════════════════════════════════
+//  RESPONSE HANDLERS
+// ═══════════════════════════════════════════════════
+
+function rGreet() {
+  return `<div>Hey there, RF explorer! 👋 I'm <strong>Minny</strong> — your AI-powered component expert from <strong>Mini-Circuits</strong>! I'm always <em>on the right frequency</em> to help! 📡⚡</div>
+<div class="fgrid">
+  <div class="fbox"><strong>🔍 Find Products</strong><span>Describe your specs — I'll match the best parts</span></div>
+  <div class="fbox"><strong>🔄 Alternatives</strong><span>EOL or out-of-stock? I'll find substitutes</span></div>
+  <div class="fbox"><strong>📊 RF Calculations</strong><span>VSWR, cascade NF, P1dB, dBm conversions</span></div>
+  <div class="fbox"><strong>🔧 Troubleshoot</strong><span>Oscillation, gain issues, layout problems</span></div>
+</div>
+<div style="margin-top:9px;font-size:12.5px;color:#666;">Just type naturally — or tap a quick-action button below. What can I help you with today? 😊</div>`;
+}
+
+function rFind(msg) {
+  const specs = extractSpecs(msg);
+  const res = searchDB(specs);
+  if (!res.length) {
+    return `<div>Hmm, my antenna array isn't finding a perfect match right now! 🤔</div>
+<div style="margin-top:7px;font-size:12.5px;color:#555;">Try being more specific about:
+  <strong>frequency range</strong>, <strong>product type</strong> (amplifier, filter, mixer…), and key specs like noise figure or gain.</div>`;
+  }
+  let h = `<div>Signal acquired! Found <strong>${res.length} match${res.length>1?'es':''}</strong> for your specs — here are the top picks:</div>`;
+  res.forEach(p => { h += cardHtml(p, specs); });
+  h += `<div style="margin-top:9px;font-size:12px;color:#666;">💡 Ask me about any part number for full specs, cascade analysis, or troubleshooting!</div>`;
+  return h;
+}
+
+function rAlt(msg) {
+  const orig = findPart(msg);
+  if (!orig) {
+    return `<div>Which part number would you like alternatives for? For example: <em>"Alternatives to ERA-2+"</em> — just give me the part number! 🔄</div>`;
+  }
+  const alts = DB.filter(p =>
+    p.pn !== orig.pn && p.cat === orig.cat &&
+    (p.fhi ?? 0) >= (orig.fhi ?? 0) * 0.75
+  ).slice(0, 3);
+  let h = `<div>On the hunt for <strong style="font-family:monospace">${orig.pn}</strong> substitutes! Here's the original vs. best alternatives:</div>`;
+  h += `<div class="seclab">📦 Original Part:</div>`;
+  h += cardHtml(orig, {}, true);
+  if (!alts.length) {
+    return h + `<div style="margin-top:8px;font-size:12.5px;color:#555;">This is a highly specialized part — I don't have a direct drop-in. Contact Mini-Circuits FAE for custom alternatives!</div>`;
+  }
+  h += `<div class="seclab">✅ Recommended Alternatives:</div>`;
+  alts.forEach(p => { h += cardHtml(p, {}, false, orig); });
+  h += `<div style="margin-top:8px;font-size:12px;color:#666;background:#fff8f0;border-radius:8px;padding:8px;">⚠️ Always verify drop-in compatibility for your specific operating conditions — especially frequency range, supply voltage, and PCB footprint.</div>`;
+  return h;
+}
+
+function rQA(msg) {
+  const p = findPart(msg);
+  if (!p) return rGen(msg);
+  const m = msg.toLowerCase();
+  let h = `<div>Intel on <strong style="font-family:monospace">${p.pn}</strong> — <em>${p.desc}</em>:</div>`;
+
+  if (/p1db|compress/.test(m) && p.p1o != null) {
+    h += `<div class="cbox"><div class="cbox-title">Output P1dB Compression Point</div>
+      <div class="cbox-val">${p.p1o} dBm</div>
+      <div class="cbox-form">Input P1dB ≈ ${p.p1o} − ${p.gain} = ${p.p1o-p.gain} dBm | IIP3 ≈ ${p.p1o-p.gain+10} dBm (rule of thumb)</div></div>`;
+  }
+  if (/noise|nf\b/.test(m) && p.nf != null) {
+    const tn = Math.round(290*(lin(p.nf)-1));
+    h += `<div class="cbox"><div class="cbox-title">Noise Figure</div>
+      <div class="cbox-val">${p.nf} dB</div>
+      <div class="cbox-form">Equivalent Noise Temp: T_e = 290×(10^(NF/10)-1) = ${tn} K</div></div>`;
+  }
+  if (/\bgain\b/.test(m) && p.gain != null) {
+    h += `<div class="cbox"><div class="cbox-title">Small-Signal Gain (S21)</div>
+      <div class="cbox-val">${p.gain} dB</div>
+      <div class="cbox-form">Linear power ratio: ${r2(lin(p.gain))}× &nbsp;|&nbsp; Voltage gain: ${r2(Math.pow(10,p.gain/20))}×</div></div>`;
+  }
+  // Always show full spec table
+  h += fullSpec(p);
+  return h;
+}
+
+function rVSWR(msg) {
+  const vm = msg.match(/vswr\s*(?:of|=|:)?\s*(\d+(?:\.\d+)?)/i);
+  const rm = msg.match(/return.loss\s*(?:of|=|:)?\s*(\d+(?:\.\d+)?)\s*d?b?/i);
+  let vswr, rl;
+  if (vm) { vswr = +vm[1]; rl = vswr2rl(vswr); }
+  else if (rm) { rl = +rm[1]; vswr = rl2vswr(rl); }
+  else return `<div>Give me a VSWR (e.g. <em>"VSWR 1.5"</em>) or return loss (e.g. <em>"return loss 14 dB"</em>) and I'll convert in a flash! ⚡</div>`;
+
+  const g = (vswr-1)/(vswr+1);
+  const rp = r2(g*g*100);
+  const qual = vswr<1.2?'Excellent match ✅':vswr<1.5?'Good match ✅':vswr<2?'Acceptable ⚠️':'Significant mismatch ❌';
+
+  return `<div>Reflection number-crunching coming right up! 🧮</div>
+<div class="cbox">
+  <div class="cgrid">
+    <div class="ci"><div class="ci-l">VSWR</div><div class="ci-v">${r2(vswr)}:1</div></div>
+    <div class="ci"><div class="ci-l">Return Loss</div><div class="ci-v">${r2(rl)} dB</div></div>
+    <div class="ci"><div class="ci-l">|Γ| Reflection Coeff</div><div class="ci-v">${r2(g)}</div></div>
+    <div class="ci"><div class="ci-l">Reflected Power</div><div class="ci-v">${rp}%</div></div>
+  </div>
+  <div class="cbox-form" style="margin-top:8px;">VSWR = (1+|Γ|)/(1−|Γ|) &nbsp;|&nbsp; RL = −20·log₁₀(|Γ|)</div>
+</div>
+<div style="margin-top:7px;font-size:12.5px;color:#555;">Assessment: <strong>${qual}</strong> — ${rp}% of power reflected back to source.</div>`;
+}
+
+function rCascade(msg) {
+  // Try to find mentioned parts
+  let stages = DB.filter(p => p.gain != null &&
+    (msg.toUpperCase().includes(p.pn.replace('+','')) || msg.toUpperCase().includes(p.pn))
+  ).slice(0,4).map(p => ({ name:p.pn, gain:p.gain, nf:p.nf, oip3:p.oip3||28 }));
+
+  if (stages.length < 2) {
+    // Default illustrative example
+    stages = [
+      { name:'PHA-1H+ (LNA)', gain:20, nf:1.7, oip3:29 },
+      { name:'ERA-2+ (Gain)', gain:15.6, nf:3.4, oip3:23 }
+    ];
+  }
+  const res = cascade(stages);
+
+  let rows = stages.map(s =>
+    `<tr><td>${s.name}</td><td>${s.gain} dB</td><td>${s.nf} dB</td><td>${s.oip3} dBm</td></tr>`
+  ).join('');
+
+  return `<div>Running your ${stages.length}-stage RF chain through Friis formula… 🔗</div>
+<div class="cbox">
+  <div class="cbox-title">Cascade Analysis Result</div>
+  <table class="ctbl">
+    <thead><tr><th>Stage</th><th>Gain</th><th>NF</th><th>OIP3</th></tr></thead>
+    <tbody>
+      ${rows}
+      <tr><td>★ SYSTEM TOTAL</td><td>${res.gain} dB</td><td>${res.nf} dB</td><td>${res.oip3} dBm</td></tr>
+    </tbody>
+  </table>
+  <div class="cbox-form" style="margin-top:7px;">NF_total = NF₁ + (NF₂−1)/G₁ + (NF₃−1)/(G₁·G₂) + … &nbsp;[Friis Formula]</div>
+</div>
+<div style="margin-top:7px;font-size:12.5px;color:#555;">💡 Key insight: First stage NF (<strong>${stages[0].nf} dB</strong>) dominates the system — always put your best LNA first!</div>`;
+}
+
+function rTS(msg) {
+  const m = msg.toLowerCase();
+  let cat = 'amp', sym = 'osc';
+  if (/filter/.test(m)) { cat='flt'; sym='gen'; }
+  else if (/mixer/.test(m)) { cat='mix'; sym='gen'; }
+  else if (/switch/.test(m)) { cat='sw'; sym='gen'; }
+  if (/no output|no signal|dead|not work/.test(m)) sym = 'dead';
+  else if (/noise|noisy/.test(m)) sym = 'nf';
+  else if (/gain|loss/.test(m)) sym = 'gain';
+  else if (/hot|heat|thermal/.test(m)) sym = 'therm';
+
+  const trees = {
+    amp: {
+      osc: { title:'🔴 Amplifier Oscillation', steps:[
+        'Check <strong>supply decoupling</strong> — place 100 nF ceramic + 10 µF tantalum on Vcc pin, as close to the IC as possible. Missing decoupling is the #1 cause of RF oscillation.',
+        'Verify <strong>PCB layout separation</strong> — RF input and output traces must be widely separated with ground plane between them. Parallel routing causes feedback loops.',
+        'Check <strong>stability factor K</strong> in the datasheet — ensure source and load impedances keep K > 1. Add a 10–22 Ω series resistor at output if needed.',
+        'Inspect for <strong>resonant structures</strong> — via stitching, copper pours, or stubs near the device can form resonators. Check with EM simulation tool.',
+        'Try <strong>ferrite bead on Vcc</strong> (e.g., 600 Ω @ 100 MHz) — this isolates the bias circuit from RF and kills supply-line oscillation paths.',
+      ]},
+      dead: { title:'⚫ No Output — Dead Amplifier', steps:[
+        'Measure <strong>Vcc and Icc</strong> with a multimeter. Compare to datasheet values. Zero current = device not powered or dead; excessive current = damaged device.',
+        'Check for <strong>ESD damage</strong> — if Icc is abnormally low and gain is zero, the MMIC is likely ESD-damaged. Always use ESD wrist strap and mats.',
+        'Verify <strong>input power level</strong> — exceeding Abs Max input power permanently damages the device. Check if the input was within spec before failure.',
+        'Check <strong>component orientation</strong> — SOT-89 and QFN devices can be rotated 180°. Verify pin 1 matches PCB silkscreen using magnification.',
+        'Inject a <strong>known test signal</strong> (e.g., −10 dBm from signal generator) and measure output with spectrum analyzer to confirm the device is active.',
+      ]},
+      nf: { title:'📶 High Noise Figure', steps:[
+        'Check <strong>input impedance matching</strong> — Noise figure is extremely sensitive to source impedance. For LNAs, Γ_opt may differ significantly from 50 Ω.',
+        'Inspect <strong>everything before the LNA input</strong> — any cable loss, connector loss, or filter insertion loss directly adds to system NF (Friis). Even 0.5 dB loss = +0.5 dB NF.',
+        'Verify <strong>bias point</strong> — operating at reduced Icc increases NF. Confirm Vcc is correct and the bias resistor/circuit is supplying the correct current.',
+        'Check <strong>operating temperature</strong> — NF degrades at high temperature. Ensure adequate thermal management and check thermal resistance specs.',
+      ]}
+    },
+    flt: {
+      gen: { title:'🟣 Filter Performance Issue', steps:[
+        'Check <strong>center frequency shift</strong> — PCB parasitic capacitance shifts center frequency down. Minimize pad size and stray capacitance to ground. Re-measure S21 vs. spec.',
+        'Verify <strong>50 Ω source and load impedance</strong> — filters are tuned for exact impedance termination. Mismatch dramatically alters passband shape, IL, and return loss.',
+        'Inspect <strong>ground plane continuity</strong> — SMT filters require a solid ground plane. Any slots, voids, or split planes under the device will degrade performance.',
+        'Confirm <strong>correct part number</strong> — many SMT filters look identical. Verify passband frequency under a scope/VNA — wrong part is a common assembly error.',
+        'Check <strong>soldering quality</strong> — cold joints, missing grounds, or solder bridges on ceramic filters cause IL increase and return loss degradation.',
+      ]}
+    },
+    mix: {
+      gen: { title:'🔵 Mixer Issue', steps:[
+        'Verify <strong>LO power level</strong> — insufficient LO power is the most common mixer problem. Measure LO power at the LO port; it must match the datasheet spec (typically +7 to +13 dBm).',
+        'Check <strong>LO/RF/IF frequency plan</strong> — confirm RF, LO, and desired IF frequencies are within the mixer\'s specified ranges.',
+        'Measure <strong>LO-RF isolation</strong> — if LO leakage is too high at the RF port, improve PCB layout. Add LO filtering on the RF path.',
+        'Check <strong>impedance matching on all three ports</strong> — improper termination on any port degrades conversion loss and isolation.',
+      ]}
+    },
+    sw: {
+      gen: { title:'⚪ RF Switch Issue', steps:[
+        'Verify <strong>control voltage logic levels</strong> — wrong control voltage is the most common switch issue. Check TTL/CMOS levels vs. spec.',
+        'Check <strong>insertion loss at operating frequency</strong> — ensure the switch is rated for your frequency range. Insertion loss rises sharply above fmax.',
+        'Verify <strong>input power level</strong> — exceeding P1dB on a switch causes compression and distortion. Reduce input power or select higher-power switch.',
+        'Check <strong>switching speed requirements</strong> — ensure the bias/control circuit can drive the required transition time. Add driver if needed.',
+      ]}
+    }
+  };
+
+  const tree = trees[cat]?.[sym] || trees[cat]?.gen || trees.amp.osc;
+  let h = `<div>Running diagnostics on your ${cat==='amp'?'amplifier':cat==='flt'?'filter':cat==='mix'?'mixer':'switch'} issue! Here's my systematic guide:</div>
+<div style="background:#fff8f0;border-left:3px solid var(--orange);padding:8px 11px;border-radius:0 8px 8px 0;margin-top:8px;font-weight:700;">${tree.title}</div>`;
+  tree.steps.forEach((st, i) => {
+    h += `<div class="tstep"><div class="tsnum">${i+1}</div><div class="tstxt">${st}</div></div>`;
+  });
+  h += `<div style="margin-top:9px;font-size:12px;background:#f0f4ff;border-radius:8px;padding:9px;color:#444;">📞 If these steps don't resolve it, <strong>contact Mini-Circuits FAE</strong> at applications@minicircuits.com — they can review your schematic and PCB layout directly.</div>`;
+  return h;
+}
+
+function rPwr(msg) {
+  const dm = msg.match(/(-?\d+(?:\.\d+)?)\s*dbm/i);
+  const mm = msg.match(/(\d+(?:\.\d+)?)\s*(mw|milliwatt|w\b)/i);
+  if (dm) {
+    const dbm = +dm[1], mw = r2(dbm2mw(dbm)), uW = r2(dbm2mw(dbm)*1000);
+    return `<div class="cbox"><div class="cbox-title">Power Conversion</div>
+      <div class="cgrid">
+        <div class="ci"><div class="ci-l">Input</div><div class="ci-v">${dbm} dBm</div></div>
+        <div class="ci"><div class="ci-l">milliwatts</div><div class="ci-v">${mw} mW</div></div>
+        <div class="ci"><div class="ci-l">microwatts</div><div class="ci-v">${uW} µW</div></div>
+        <div class="ci"><div class="ci-l">watts</div><div class="ci-v">${r2(mw/1000)} W</div></div>
+      </div>
+      <div class="cbox-form" style="margin-top:7px;">P(mW) = 10^(P(dBm)/10)</div></div>`;
+  }
+  if (mm) {
+    const mw = +mm[1] * (mm[2].toLowerCase()==='w'?1000:1);
+    const dbm = r2(mw2dbm(mw));
+    return `<div class="cbox"><div class="cbox-title">Power Conversion</div>
+      <div class="cgrid">
+        <div class="ci"><div class="ci-l">Input</div><div class="ci-v">${mw} mW</div></div>
+        <div class="ci"><div class="ci-l">dBm</div><div class="ci-v">${dbm} dBm</div></div>
+      </div>
+      <div class="cbox-form" style="margin-top:7px;">P(dBm) = 10·log₁₀(P(mW))</div></div>`;
+  }
+  return `<div>Give me a power value (e.g. <em>"23 dBm"</em> or <em>"2 mW"</em>) and I'll convert it! ⚡</div>`;
+}
+
+function rGen(msg) {
+  const m = msg.toLowerCase();
+  if (/lna.*gain.block|gain.block.*lna|difference.*lna|lna.*vs/.test(m))
+    return `<div>Great question! Here's the LNA vs. Gain Block showdown: 🥊</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;">
+  <div style="background:#fee2e2;border-radius:9px;padding:9px;">
+    <strong style="color:#991b1b;font-size:13px;">📡 LNA</strong>
+    <div style="font-size:11.5px;margin-top:5px;color:#555;line-height:1.6;">• Optimized for <strong>lowest NF</strong><br>• Receiver front-end<br>• NF typically &lt; 2 dB<br>• Lower P1dB<br>• E.g. PHA-1H+, ZX60-83LN+</div>
+  </div>
+  <div style="background:#dbeafe;border-radius:9px;padding:9px;">
+    <strong style="color:#1e40af;font-size:13px;">⚡ Gain Block</strong>
+    <div style="font-size:11.5px;margin-top:5px;color:#555;line-height:1.6;">• Flat gain, high P1dB<br>• Mid-chain or TX path<br>• NF typically 3–5 dB<br>• Higher output power<br>• E.g. ERA-2+, ZX60-V82+</div>
+  </div>
+</div>
+<div style="margin-top:8px;font-size:12.5px;color:#555;">💡 <strong>Friis Rule:</strong> First stage dominates system NF — always put your LNA first for the best system noise figure!</div>`;
+
+  if (/p1db|what.*compression|explain.*p1db/.test(m))
+    return `<div><strong>P1dB</strong> — the 1 dB Compression Point — is a key amplifier linearity spec! 📊</div>
+<div style="margin-top:7px;font-size:13px;line-height:1.6;">It's the input (or output) power level where the amplifier's gain drops by exactly <strong>1 dB</strong> below its small-signal value due to nonlinearity.</div>
+<div class="cbox" style="margin-top:8px;">
+  <div class="cbox-title">Quick Reference Rules</div>
+  <div style="font-size:12px;line-height:1.9;">📌 Input P1dB ≈ Output P1dB − Gain<br>
+    📌 IIP3 ≈ IIP1dB + 10 dBm (2nd-order rule of thumb)<br>
+    📌 OIP3 ≈ OIP1dB + 10 dBm<br>
+    📌 Linear operation: keep input ≥ 10 dB below P1dB (10 dB back-off)</div>
+</div>`;
+
+  if (/rohs|compliant|lead.free|green/.test(m))
+    return `<div>Great news! 🌿 Mini-Circuits products with a <strong style="font-family:monospace">+</strong> suffix (e.g. ERA-2<strong>+</strong>) are fully <strong>RoHS compliant</strong> with lead-free solder and halogen-free packaging.</div>
+<div style="margin-top:7px;font-size:12.5px;color:#555;">For REACH compliance, conflict mineral declarations, and full environmental datasheets, visit <strong>minicircuits.com</strong> or contact the compliance team at compliance@minicircuits.com.</div>`;
+
+  if (/pcb|layout|solder|mount|assembly/.test(m))
+    return `<div>PCB layout is critical for RF performance! Here are Minny's top layout tips: 🖥️</div>
+<div class="tstep"><div class="tsnum">1</div><div class="tstxt"><strong>50 Ω controlled impedance traces</strong> — use a microstrip or coplanar waveguide calculator. Width depends on substrate height and εr.</div></div>
+<div class="tstep"><div class="tsnum">2</div><div class="tstxt"><strong>Solid ground plane</strong> — avoid splits/voids under RF components. Use via stitching around critical components.</div></div>
+<div class="tstep"><div class="tsnum">3</div><div class="tstxt"><strong>Decouple at every supply pin</strong> — 100 nF ceramic (0402) + 10 µF tantalum, placed as close to the pin as possible.</div></div>
+<div class="tstep"><div class="tsnum">4</div><div class="tstxt"><strong>Separate input/output</strong> — never route RF input and output traces parallel. Place a ground shield between them.</div></div>
+<div class="tstep"><div class="tsnum">5</div><div class="tstxt"><strong>Short RF paths</strong> — minimize trace length between components. Each mm of trace = parasitics that shift frequency and add loss.</div></div>`;
+
+  return `<div>Interesting question! 🤔 I'm best tuned for Mini-Circuits products, RF calculations, and circuit troubleshooting.</div>
+<div style="margin-top:8px;font-size:12.5px;color:#555;">I can help you with:<br>
+  • 🔍 <strong>Finding products</strong> by spec<br>
+  • 🔄 <strong>Alternatives</strong> to existing parts<br>
+  • 📊 <strong>Calculations</strong>: VSWR, cascade NF, P1dB, dBm conversions<br>
+  • 🔧 <strong>Troubleshooting</strong>: amplifiers, filters, mixers, switches<br>
+  • 📋 <strong>Product Q&amp;A</strong>: just give me a part number!</div>`;
+}
+
+// ═══════════════════════════════════════════════════
+//  CARD / TABLE BUILDERS
+// ═══════════════════════════════════════════════════
+const CAT_CLS = {amp:'c-amp',flt:'c-flt',mix:'c-mix',att:'c-att',spl:'c-spl',sw:'c-sw'};
+const CAT_LBL = {amp:'Amplifier',flt:'Filter',mix:'Mixer',att:'Attenuator',spl:'Splitter',sw:'Switch'};
+
+function cardHtml(p, specs, isOrig, cmp) {
+  let pills = '';
+  if (p.cat==='amp') pills = `
+    <span class="sp${specs.maxNF&&p.nf<=specs.maxNF?' hi':''}">NF: ${p.nf} dB</span>
+    <span class="sp">Gain: ${p.gain} dB</span>
+    <span class="sp hi">P1dB: ${p.p1o} dBm</span>
+    <span class="sp">OIP3: ${p.oip3} dBm</span>
+    <span class="sp">${p.flo}–${p.fhi} MHz</span>
+    <span class="sp">${p.vcc}V / ${p.icc}mA</span>`;
+  else if (p.cat==='flt') pills = `
+    <span class="sp hi">IL: ${p.il} dB</span>
+    <span class="sp">Rej: ${p.rej} dBc</span>
+    <span class="sp">RL: ${p.rl} dB</span>
+    <span class="sp">${p.flo||0}–${p.fhi} MHz</span>`;
+  else if (p.cat==='att') pills = `
+    <span class="sp hi">${p.atten} dB</span>
+    <span class="sp">DC–${p.fhi} MHz</span>
+    <span class="sp">${p.pwr} mW max</span>
+    <span class="sp">VSWR ${p.vswr}</span>`;
+  else if (p.cat==='mix') pills = `
+    <span class="sp hi">Conv Loss: ${p.cvloss} dB</span>
+    <span class="sp">LO: ${p.lopwr} dBm</span>
+    <span class="sp">IIP3: ${p.iip3} dBm</span>`;
+  else if (p.cat==='spl') pills = `
+    <span class="sp hi">IL: ${p.il} dB</span>
+    <span class="sp">Iso: ${p.iso} dB</span>
+    <span class="sp">${p.flo}–${p.fhi} MHz</span>
+    <span class="sp">Amp bal: ±${p.aba} dB</span>`;
+  else if (p.cat==='sw') pills = `
+    <span class="sp hi">IL: ${p.il} dB</span>
+    <span class="sp">Iso: ${p.iso} dB</span>
+    <span class="sp">P1dB: ${p.p1db} dBm</span>
+    <span class="sp">${p.spd} ns</span>`;
+
+  let diffHtml = '';
+  if (cmp && p.cat==='amp') {
+    const d = [];
+    if (p.nf > cmp.nf)   d.push(`NF +${r2(p.nf-cmp.nf)} dB worse`);
+    if (p.gain < cmp.gain) d.push(`Gain −${r2(cmp.gain-p.gain)} dB less`);
+    if (p.p1o > cmp.p1o) d.push(`P1dB +${p.p1o-cmp.p1o} dBm better`);
+    if (p.fhi > cmp.fhi)  d.push(`Freq range wider`);
+    if (d.length) diffHtml = `<div class="diffwarn">⚠️ vs. original: ${d.join(' · ')}</div>`;
+  }
+
+  return `<div class="pcard" onclick="quickSend('Tell me about ${p.pn}')">
+    <span class="ctag ${CAT_CLS[p.cat]}">${CAT_LBL[p.cat]}${isOrig?' — Current Part':''}</span>
+    <div class="pn">${p.pn}</div>
+    <div class="pdesc">${p.desc}</div>
+    <div class="spills">${pills}</div>
+    ${diffHtml}
+    <div class="prow">
+      <span class="price">$${p.price}</span>
+      <span class="${p.stock?'stock-y':'stock-n'}">${p.stock?'✓ In Stock':'✗ Check Availability'}</span>
+    </div>
+  </div>`;
+}
+
+function fullSpec(p) {
+  const rows = [];
+  const add = (l, v) => rows.push(`<tr><td>${l}</td><td>${v}</td></tr>`);
+  add('Part Number', `<span style="font-family:monospace;font-weight:700">${p.pn}</span>`);
+  add('Description', p.desc);
+  add('Package', p.pkg);
+  add('Price', `$${p.price}`);
+  add('Availability', p.stock ? '<span style="color:#38a169;font-weight:600">In Stock</span>' : '<span style="color:#e53e3e">Check with Sales</span>');
+  if (p.cat==='amp') {
+    add('Frequency Range', `${p.flo}–${p.fhi} MHz`);
+    add('Gain', `${p.gain} dB`);
+    add('Noise Figure', `${p.nf} dB`);
+    add('Output P1dB', `${p.p1o} dBm`);
+    add('Input P1dB', `${r2(p.p1o - p.gain)} dBm`);
+    add('OIP3', `${p.oip3} dBm`);
+    add('Supply Voltage', `${p.vcc} V`);
+    add('Supply Current', `${p.icc} mA`);
+  } else if (p.cat==='flt') {
+    add('Passband', `${p.flo}–${p.fhi} MHz`);
+    add('Insertion Loss', `${p.il} dB`);
+    add('Rejection', `${p.rej} dBc`);
+    add('Return Loss', `${p.rl} dB`);
+  } else if (p.cat==='att') {
+    add('Attenuation', `${p.atten} dB`);
+    add('Frequency', `DC–${p.fhi} MHz`);
+    add('Max Power', `${p.pwr} mW`);
+    add('VSWR', `${p.vswr}:1`);
+  } else if (p.cat==='mix') {
+    add('RF/LO Range', `${p.rflo}–${p.rfhi} MHz`);
+    add('IF Bandwidth', `DC–${p.ifhi} MHz`);
+    add('Conversion Loss', `${p.cvloss} dB`);
+    add('LO Power', `${p.lopwr} dBm`);
+    add('IIP3', `${p.iip3} dBm`);
+  } else if (p.cat==='spl') {
+    add('Configuration', `${p.ways}-Way 0°`);
+    add('Frequency', `${p.flo}–${p.fhi} MHz`);
+    add('Excess Insertion Loss', `${p.il} dB`);
+    add('Port Isolation', `${p.iso} dB`);
+    add('Amplitude Balance', `±${p.aba} dB`);
+    add('Phase Balance', `±${p.phb}°`);
+  } else if (p.cat==='sw') {
+    add('Topology', p.topo);
+    add('Frequency', `DC–${p.fhi} MHz`);
+    add('Insertion Loss', `${p.il} dB`);
+    add('Isolation', `${p.iso} dB`);
+    add('P1dB', `${p.p1db} dBm`);
+    add('Switching Speed', `${p.spd} ns`);
+    add('Control Voltage', `${p.ctlv} V`);
+  }
+  return `<table class="spectbl">
+    <thead><tr><th colspan="2">📋 Full Specifications — ${p.pn}</th></tr></thead>
+    <tbody>${rows.join('')}</tbody>
+  </table>`;
+}
+
+// ═══════════════════════════════════════════════════
+//  MAIN ROUTER
+// ═══════════════════════════════════════════════════
+function getReply(msg) {
+  if (!msg.trim()) return null;
+  const m = msg.toLowerCase();
+  if (/^(hi|hello|hey|hiya|yo|sup|howdy|good morning|good afternoon|what can you do|help)/.test(m)) return rGreet();
+  switch(intent(msg)) {
+    case 'alt':     return rAlt(msg);
+    case 'cascade': return rCascade(msg);
+    case 'vswr':    return rVSWR(msg);
+    case 'pwr':     return rPwr(msg);
+    case 'ts':      return rTS(msg);
+    case 'qa':      return rQA(msg);
+    case 'find':    return rFind(msg);
+    default:        return rGen(msg);
+  }
+}
+
+// ═══════════════════════════════════════════════════
+//  CHAT UI
+// ═══════════════════════════════════════════════════
+const MINNY_SM = `<svg class="av-sm" viewBox="0 0 80 100" xmlns="http://www.w3.org/2000/svg">
+  <line x1="40" y1="1" x2="40" y2="17" stroke="#FF6B00" stroke-width="2.5" stroke-linecap="round"/>
+  <circle cx="40" cy="1" r="3.5" fill="#FF6B00"/>
+  <rect x="11" y="17" width="58" height="42" rx="13" fill="#1C2951"/>
+  <ellipse cx="28" cy="35" rx="6.5" ry="6.5" fill="#FF6B00"/>
+  <ellipse cx="52" cy="35" rx="6.5" ry="6.5" fill="#FF6B00"/>
+  <ellipse cx="28" cy="35" rx="3.8" ry="3.8" fill="#fff"/>
+  <ellipse cx="52" cy="35" rx="3.8" ry="3.8" fill="#fff"/>
+  <ellipse cx="29.2" cy="33.8" rx="2" ry="2" fill="#1C2951"/>
+  <ellipse cx="53.2" cy="33.8" rx="2" ry="2" fill="#1C2951"/>
+  <rect x="11" y="60" width="58" height="36" rx="11" fill="#1C2951"/>
+  <rect x="20" y="65" width="40" height="24" rx="5" fill="#0A1220"/>
+  <text x="28" y="80" fill="#FF6B00" font-size="11" font-weight="900" font-family="Arial">M</text>
+  <text x="42" y="80" fill="#FF6B00" font-size="11" font-weight="900" font-family="Arial">C</text>
+</svg>`;
+
+const USER_AV = `<div class="av-sm" style="background:#1C2951;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;width:36px;height:36px;">👤</div>`;
+
+function addMsg(html, isUser, isTyping) {
+  const chat = document.getElementById('chat');
+  const row = document.createElement('div');
+  row.className = 'row' + (isUser ? ' user' : '');
+  if (isTyping) {
+    row.id = 'typing';
+    row.innerHTML = `${MINNY_SM}<div class="bubble bot"><div class="typing-wrap"><div class="td"></div><div class="td"></div><div class="td"></div></div></div>`;
+  } else if (isUser) {
+    row.innerHTML = `<div class="bubble user">${escHtml(html)}</div>${USER_AV}`;
+  } else {
+    row.innerHTML = `${MINNY_SM}<div class="bubble bot">${html}</div>`;
+  }
+  chat.appendChild(row);
+  chat.scrollTop = chat.scrollHeight;
+  return row;
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+async function doSend() {
+  const el = document.getElementById('tinput');
+  const msg = el.value.trim();
+  if (!msg) return;
+  el.value = ''; el.style.height = 'auto';
+  addMsg(msg, true);
+  const t = addMsg('', false, true);
+  const delay = 500 + Math.random() * 700;
+  await new Promise(r => setTimeout(r, delay));
+  document.getElementById('typing')?.remove();
+  const reply = getReply(msg) || rGen(msg);
+  addMsg(reply, false);
+}
+
+function quickSend(txt) {
+  document.getElementById('tinput').value = txt;
+  doSend();
+}
+
+document.getElementById('tinput').addEventListener('input', function() {
+  this.style.height = 'auto';
+  this.style.height = Math.min(this.scrollHeight, 100) + 'px';
+});
+document.getElementById('tinput').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); doSend(); }
+});
+
+// Boot greeting
+setTimeout(() => addMsg(rGreet(), false), 350);
+</script>
+</body>
+</html>

@@ -968,7 +968,7 @@ const semCache = new Map();
 const SEM_TTL = 6 * 3600 * 1000;
 function normQ(s) { return String(s || '').toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim(); }
 function semGet(msg) {
-  if (!process.env.ENABLE_SEMANTIC_CACHE) return null;
+  if (process.env.DISABLE_SEMANTIC_CACHE) return null;
   const k = normQ(msg), now = Date.now();
   const direct = semCache.get(k);
   if (direct && now - direct.at < SEM_TTL) return direct;
@@ -985,7 +985,7 @@ function semGet(msg) {
   return null;
 }
 function semSet(msg, out) {
-  if (!process.env.ENABLE_SEMANTIC_CACHE) return;
+  if (process.env.DISABLE_SEMANTIC_CACHE) return;
   const k = normQ(msg);
   if (/\d/.test(k)) return;                                       // numeric question -> not stable
   if (out.products && out.products.length) return;                // part-specific -> never cache
@@ -995,6 +995,22 @@ function semSet(msg, out) {
 
 // Core chat logic (tool-use loop + post-processing). Reusable by the API route
 // and offline benchmarking. Returns { reply, products, suggestions, tokens, rawText }.
+// Compact a search result for the model: top 10, key fields only. Cards shown to
+// the user are rebuilt from the full catalog separately, so this loses nothing
+// the customer sees — it just stops re-sending fat JSON on every tool-loop turn.
+function compactSearch(r) {
+  const slim = (r.results || []).slice(0, 10).map(p => {
+    const o = { pn: p.pn };
+    if (p.flo != null) o.MHz = p.flo + '-' + p.fhi;
+    ['gain', 'nf', 'p1o', 'oip3', 'il', 'iso', 'impedance', 'impedance_ratio'].forEach(k => { if (p[k] != null) o[k] = p[k]; });
+    if (p.case_style) o.case = p.case_style;
+    if (p.interface) o.pkg = p.interface;
+    if (p.desc) o.desc = String(p.desc).slice(0, 55);
+    return o;
+  });
+  return { total: r.total, shown: slim.length, results: slim };
+}
+
 async function runChat(message, history = []) {
   // Semantic cache: instant, free return for a repeated stable conceptual question.
   const cached = (!history || !history.length) ? semGet(message) : null;
@@ -1002,7 +1018,8 @@ async function runChat(message, history = []) {
 
   // Model routing: simple/conceptual -> fast model; anything where accuracy
   // matters (parts, specs, recommendations, troubleshooting) -> Sonnet.
-  const model = (process.env.ENABLE_MODEL_ROUTING && classifyComplexity(message) === 'simple') ? MODEL_FAST : MODEL;
+  const route = process.env.FORCE_FAST ? 'simple' : (process.env.FORCE_SLOW ? 'advanced' : classifyComplexity(message));
+  const model = (!process.env.DISABLE_MODEL_ROUTING && route === 'simple') ? MODEL_FAST : MODEL;
 
   const systemPrompt = buildSystemPrompt();
   const messages = [
@@ -1013,20 +1030,23 @@ async function runChat(message, history = []) {
   let usage = { input: 0, output: 0 };
   let finalText = '';
 
-  // Optional prompt caching (OFF by default — set ENABLE_PROMPT_CACHE to turn on).
-  // Caches the large static system prompt so it isn't re-processed/re-billed on
-  // every tool-loop turn and follow-up — faster + cheaper, identical output.
-  // Gated so it cannot affect the live bot until verified with API credits.
-  const useCache = !!process.env.ENABLE_PROMPT_CACHE;
+  // Prompt caching — ON by default (set DISABLE_PROMPT_CACHE to turn off).
+  // Caches the large static system prompt + tool definitions so they're not
+  // re-billed on every tool-loop turn (and are shared across queries for 5 min).
+  // Identical output — this only changes cost/latency, never the answer.
+  const useCache = !process.env.DISABLE_PROMPT_CACHE;
   const sysParam = useCache ? [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }] : systemPrompt;
-  const reqOpts = useCache ? { headers: { 'anthropic-beta': 'prompt-caching-2024-07-31' } } : undefined;
+  const toolsParam = useCache ? TOOLS.map((t, i) => (i === TOOLS.length - 1 ? { ...t, cache_control: { type: 'ephemeral' } } : t)) : TOOLS;
 
   for (let turn = 0; turn < MAX_TOOL_TURNS; turn++) {
     const response = await anthropic.messages.create({
-      model, max_tokens: 1500, system: sysParam, tools: TOOLS, messages,
-    }, reqOpts);
+      model, max_tokens: 1500, system: sysParam, tools: toolsParam, messages,
+    });
     usage.input += response.usage.input_tokens;
     usage.output += response.usage.output_tokens;
+    usage.cache_read = (usage.cache_read || 0) + (response.usage.cache_read_input_tokens || 0);
+    usage.cache_write = (usage.cache_write || 0) + (response.usage.cache_creation_input_tokens || 0);
+    usage.model = model;
 
     const toolUses = response.content.filter(c => c.type === 'tool_use');
     finalText = response.content.filter(c => c.type === 'text').map(c => c.text).join('\n').trim();
@@ -1038,7 +1058,7 @@ async function runChat(message, history = []) {
       type: 'tool_result',
       tool_use_id: tu.id,
       content: JSON.stringify(
-        tu.name === 'search_catalog'      ? searchCatalog(tu.input)
+        tu.name === 'search_catalog'      ? compactSearch(searchCatalog(tu.input))
       : tu.name === 'get_product_details' ? await getProductDetails((tu.input || {}).pn)
       : { error: 'unknown tool' }),
     })));
@@ -1060,9 +1080,11 @@ async function runChat(message, history = []) {
       }
       const forced = await anthropic.messages.create({
         model, max_tokens: 1500, system: sysParam, messages: fm,
-      }, reqOpts);
+      });
       usage.input += forced.usage.input_tokens;
       usage.output += forced.usage.output_tokens;
+      usage.cache_read = (usage.cache_read || 0) + (forced.usage.cache_read_input_tokens || 0);
+      usage.cache_write = (usage.cache_write || 0) + (forced.usage.cache_creation_input_tokens || 0);
       finalText = forced.content.filter(c => c.type === 'text').map(c => c.text).join('\n').trim();
       if (process.env.BENCH_DEBUG) console.error('FORCED stop=' + forced.stop_reason + ' textlen=' + finalText.length);
     } catch (e) { if (process.env.BENCH_DEBUG) console.error('FORCED ERR:', e.status, e.message); }

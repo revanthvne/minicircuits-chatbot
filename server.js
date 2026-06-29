@@ -11,6 +11,7 @@
  */
 require('dotenv').config();
 const https      = require('https');
+const zlib       = require('zlib');
 const express    = require('express');
 const path       = require('path');
 const Anthropic  = require('@anthropic-ai/sdk');
@@ -439,14 +440,45 @@ app.get('/api/img', async (req, res) => {
 // is present. We grab a session cookie from the homepage, then fetch the
 // dashboard for a part and parse its price tiers, current stock, and the full
 // "Data, Drawings & Downloads" file list. Results are cached.
-function mcGet(path, cookie) {
+function mcGet(path, cookie, _depth) {
+  _depth = _depth || 0;
   return new Promise((resolve) => {
     const req = https.request({
       hostname: 'www.minicircuits.com', path, method: 'GET',
-      headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'text/html', 'Cookie': cookie || '' },
-    }, (r) => { let d = ''; r.on('data', c => d += c); r.on('end', () => resolve({ status: r.statusCode, setCookie: r.headers['set-cookie'], body: d })); });
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Cookie': cookie || '',
+      },
+    }, (r) => {
+      // Follow same-origin redirects so the mirror keeps working if MC adds one.
+      if ([301, 302, 303, 307, 308].includes(r.statusCode) && r.headers.location && _depth < 4) {
+        r.resume();
+        let loc = String(r.headers.location);
+        if (/^https?:\/\//i.test(loc)) {
+          if (!/(?:^|\.)minicircuits\.com/i.test(loc)) return resolve({ status: r.statusCode, body: '' });
+          loc = loc.replace(/^https?:\/\/[^/]+/i, '');
+        }
+        if (!loc.startsWith('/')) loc = '/' + loc;
+        return resolve(mcGet(loc, cookie, _depth + 1));
+      }
+      const chunks = [];
+      r.on('data', (c) => chunks.push(c));
+      r.on('end', () => {
+        let buf = Buffer.concat(chunks);
+        try {
+          const enc = (r.headers['content-encoding'] || '').toLowerCase();
+          if (enc === 'gzip') buf = zlib.gunzipSync(buf);
+          else if (enc === 'br') buf = zlib.brotliDecompressSync(buf);
+          else if (enc === 'deflate') buf = zlib.inflateSync(buf);
+        } catch (e) {}
+        resolve({ status: r.statusCode, setCookie: r.headers['set-cookie'], body: buf.toString('utf8') });
+      });
+    });
     req.on('error', () => resolve({ status: 0, body: '' }));
-    req.setTimeout(12000, () => { req.destroy(); resolve({ status: 0, body: '' }); });
+    req.setTimeout(15000, () => { req.destroy(); resolve({ status: 0, body: '' }); });
     req.end();
   });
 }
@@ -585,43 +617,43 @@ const MC = 'https://www.minicircuits.com';
 const dashCache = new Map();
 async function mirrorDashboard(pn) {
   const c = dashCache.get(pn);
-  if (c && Date.now() - c.at < 30 * 60 * 1000) return c.html;
-  let cookie = await getMcCookie();
-  let r = await mcGet('/WebStore/dashboard.html?model=' + encodeURIComponent(pn), cookie);
-  if ((r.body || '').length < 3000) { mcCookie = null; cookie = await getMcCookie(); r = await mcGet('/WebStore/dashboard.html?model=' + encodeURIComponent(pn), cookie); }
-  let h = r.body || '';
-  if (h.length < 3000) return null;
-  h = rewriteDashboard(h);
-  dashCache.set(pn, { html: h, at: Date.now() });
-  return h;
+  if (c && Date.now() - c.at < 6 * 60 * 60 * 1000) return c.html;
+  try {
+    let cookie = await getMcCookie();
+    let r = await mcGet('/WebStore/dashboard.html?model=' + encodeURIComponent(pn), cookie);
+    if ((r.body || '').length < 3000) { mcCookie = null; cookie = await getMcCookie(); r = await mcGet('/WebStore/dashboard.html?model=' + encodeURIComponent(pn), cookie); }
+    let h = r.body || '';
+    if (h.length >= 3000) { h = rewriteDashboard(h); dashCache.set(pn, { html: h, at: Date.now() }); return h; }
+  } catch (e) {}
+  return c ? c.html : null; // serve last good copy rather than the template fallback
 }
 // Live mirror of the real minicircuits.com homepage (served at "/").
 let homeCache = null;
 async function mirrorHomepage() {
-  if (homeCache && Date.now() - homeCache.at < 30 * 60 * 1000) return homeCache.html;
-  const cookie = await getMcCookie();
-  let r = await mcGet('/', cookie);
-  if ((r.body || '').length < 5000) { const g = await mcGet('/WebStore/Homepage.html', cookie); if ((g.body || '').length > (r.body || '').length) r = g; }
-  let h = r.body || '';
-  if (h.length < 5000) return null;
-  h = rewriteDashboard(h);
-  homeCache = { html: h, at: Date.now() };
-  return h;
+  if (homeCache && Date.now() - homeCache.at < 6 * 60 * 60 * 1000) return homeCache.html;
+  try {
+    const cookie = await getMcCookie();
+    let r = await mcGet('/', cookie);
+    if ((r.body || '').length < 5000) { const g = await mcGet('/WebStore/Homepage.html', cookie); if ((g.body || '').length > (r.body || '').length) r = g; }
+    let h = r.body || '';
+    if (h.length >= 5000) { h = rewriteDashboard(h); homeCache = { html: h, at: Date.now() }; return h; }
+  } catch (e) {}
+  return homeCache ? homeCache.html : null; // serve last good copy rather than the recreation
 }
 // Generic live mirror of any other minicircuits.com page (nav links -> /m/<path>).
 const pageCache = new Map();
 async function mirrorPage(mcPath) {
   mcPath = '/' + String(mcPath || '').replace(/^\/+/, '');
   const c = pageCache.get(mcPath);
-  if (c && Date.now() - c.at < 30 * 60 * 1000) return c.html;
-  const cookie = await getMcCookie();
-  let r = await mcGet(mcPath, cookie);
-  if ((r.body || '').length < 1500) { const g = await mcGet(mcPath.split('?')[0], cookie); if ((g.body || '').length > (r.body || '').length) r = g; }
-  let h = r.body || '';
-  if (h.length < 800) return null;
-  h = rewriteDashboard(h);
-  pageCache.set(mcPath, { html: h, at: Date.now() });
-  return h;
+  if (c && Date.now() - c.at < 6 * 60 * 60 * 1000) return c.html;
+  try {
+    const cookie = await getMcCookie();
+    let r = await mcGet(mcPath, cookie);
+    if ((r.body || '').length < 1500) { const g = await mcGet(mcPath.split('?')[0], cookie); if ((g.body || '').length > (r.body || '').length) r = g; }
+    let h = r.body || '';
+    if (h.length >= 800) { h = rewriteDashboard(h); pageCache.set(mcPath, { html: h, at: Date.now() }); return h; }
+  } catch (e) {}
+  return c ? c.html : null;
 }
 function rewriteDashboard(h) {
   // A) product links -> our /p/  (root-relative, so unaffected by <base>).

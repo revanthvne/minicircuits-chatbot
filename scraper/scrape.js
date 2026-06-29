@@ -187,6 +187,7 @@ function slugHeader(label) {
 // so existing logic keeps working while we also store everything generically.
 const LEGACY_MAP = {
   f_low: 'flo', f_high: 'fhi', freq_low: 'flo', freq_high: 'fhi',
+  frequency_low: 'flo', frequency_high: 'fhi', freq_low_mhz: 'flo', freq_high_mhz: 'fhi',
   gain: 'gain', nf: 'nf', p1db: 'p1db', psat: 'psat', oip3: 'oip3', iip3: 'iip3',
   input_vswr: 'vswr_in', output_vswr: 'vswr_out', vswr: 'vswr',
   voltage: 'vcc', current: 'icc_ma', case_style: 'case_style',

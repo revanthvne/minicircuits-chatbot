@@ -224,11 +224,6 @@ img{max-width:100%}
 @keyframes pulse2{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
 @keyframes tdot{0%,80%,100%{transform:scale(1);opacity:.4}40%{transform:scale(1.3);opacity:1}}
 
-.mcb{animation:mcbob 1.5s ease-in-out infinite;transform-origin:32px 42px}
-.mca{animation:mcwv 1.2s ease-in-out infinite;transform-origin:17px 31px}
-@keyframes mcbob{0%,100%{transform:translateY(0) rotate(-3deg)}50%{transform:translateY(-2px) rotate(3deg)}}
-@keyframes mcwv{0%,100%{transform:rotate(4deg)}50%{transform:rotate(-28deg)}}
-@media(prefers-reduced-motion:reduce){.mcb,.mca{animation:none}}
 .chat-fab{position:fixed;bottom:28px;right:28px;z-index:9999;cursor:pointer}
 .chat-fab-btn{width:64px;height:64px;background:linear-gradient(135deg,#253b98,#00183c);border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(0,0,0,.35),0 0 0 0 rgba(244,121,32,.4);animation:pulse-ring 2.5s infinite;transition:transform .2s}
 .chat-fab-btn:hover{transform:scale(1.08)}
@@ -423,14 +418,14 @@ img{max-width:100%}
   <div class="nav-inner">
     <div class="nav-item">Products <span class="caret">▾</span>
       <div class="nav-dropdown">
-        <div class="dd-item" onclick="location.href='/c/amp'">Amplifiers</div>
-        <div class="dd-item" onclick="location.href='/c/flt'">Filters</div>
-        <div class="dd-item" onclick="location.href='/c/mix'">Mixers</div>
-        <div class="dd-item" onclick="location.href='/c/att'">Attenuators</div>
-        <div class="dd-item" onclick="location.href='/c/spl'">Splitters/Combiners</div>
-        <div class="dd-item" onclick="location.href='/c/sw'">Switches</div>
-        <div class="dd-item" onclick="location.href='/c/ps'">Phase Shifters</div>
-        <div class="dd-item" onclick="location.href='/c/osc'">Oscillators / VCOs</div>
+        <div class="dd-item" onclick="openChat('Find me all amplifier products')">Amplifiers</div>
+        <div class="dd-item" onclick="openChat('Find me all filter products')">Filters</div>
+        <div class="dd-item" onclick="openChat('Find me all mixer products')">Mixers</div>
+        <div class="dd-item" onclick="openChat('Find me all attenuator products')">Attenuators</div>
+        <div class="dd-item" onclick="openChat('Find me all splitter products')">Splitters/Combiners</div>
+        <div class="dd-item" onclick="openChat('Find me all switch products')">Switches</div>
+        <div class="dd-item">Phase Shifters</div>
+        <div class="dd-item">Oscillators / VCOs</div>
       </div>
     </div>
     <div class="nav-item">Tools and Resources <span class="caret">▾</span>
@@ -494,14 +489,14 @@ img{max-width:100%}
 <!-- ══ CATEGORY QUICK-LINKS ══════════════════════════ -->
 <div class="cat-strip">
   <div class="cat-strip-inner">
-    <div class="cat-link" onclick="location.href='/c/amp'">📡 Amplifiers</div>
-    <div class="cat-link" onclick="location.href='/c/flt'">🔁 Filters</div>
-    <div class="cat-link" onclick="location.href='/c/mix'">⚡ Mixers</div>
-    <div class="cat-link" onclick="location.href='/c/att'">🎚️ Attenuators</div>
-    <div class="cat-link" onclick="location.href='/c/spl'">🔀 Splitters</div>
-    <div class="cat-link" onclick="location.href='/c/sw'">🔌 Switches</div>
-    <div class="cat-link" onclick="location.href='/c/ps'">🔄 Phase Shifters</div>
-    <div class="cat-link" onclick="location.href='/c/osc'">🛰️ VCOs &amp; Synth</div>
+    <div class="cat-link" onclick="openChat('Find me an amplifier')">📡 Amplifiers</div>
+    <div class="cat-link" onclick="openChat('Find me a bandpass filter')">🔁 Filters</div>
+    <div class="cat-link" onclick="openChat('Find me a mixer')">⚡ Mixers</div>
+    <div class="cat-link" onclick="openChat('Find me an attenuator 6dB')">🎚️ Attenuators</div>
+    <div class="cat-link" onclick="openChat('Find me a 2-way splitter')">🔀 Splitters</div>
+    <div class="cat-link" onclick="openChat('Find me a SPDT switch')">🔌 Switches</div>
+    <div class="cat-link" onclick="openChat('Tell me about phase shifters')">🔄 Phase Shifters</div>
+    <div class="cat-link" onclick="openChat('Tell me about VCOs and synthesizers')">🛰️ VCOs &amp; Synth</div>
   </div>
 </div>
 
@@ -515,7 +510,7 @@ img{max-width:100%}
     <div style="display:flex;gap:18px;align-items:stretch;flex-wrap:wrap">
      <div class="np-grid" style="flex:1;min-width:560px">
       <!-- Card 1 -->
-      <div class="np-card" onclick="location.href='/p/'+encodeURIComponent('WVA-71863HP+')">
+      <div class="np-card" onclick="openChatPN('WVA-71863HP+')">
         <div class="np-card-head"><span class="np-cat-label">WR12 Waveguide Amplifier</span></div>
         <div class="np-card-body">
           <div class="np-img-area" style="height:130px;display:flex;align-items:center;justify-content:center"><img src="/assets/prod/wva.png" alt="WVA-71863HP+" style="max-height:120px;max-width:90%;object-fit:contain"></div>
@@ -529,7 +524,7 @@ img{max-width:100%}
         </div>
       </div>
       <!-- Card 2 -->
-      <div class="np-card" onclick="location.href='/p/'+encodeURIComponent('SSG-R7N6GD-RC')">
+      <div class="np-card" onclick="openChat('Tell me about the SSG-R7N6GD-RC signal generator')">
         <div class="np-card-head"><span class="np-cat-label">USB &amp; Ethernet &amp; Daisy-Chain Signal Generator</span></div>
         <div class="np-card-body">
           <div class="np-img-area" style="height:130px;display:flex;align-items:center;justify-content:center"><img src="/assets/prod/ssg.png" alt="SSG-R7N6GD-RC" style="max-height:120px;max-width:90%;object-fit:contain"></div>
@@ -543,7 +538,7 @@ img{max-width:100%}
         </div>
       </div>
       <!-- Card 3 -->
-      <div class="np-card" onclick="location.href='/p/'+encodeURIComponent('M4SWA4-34DR+')">
+      <div class="np-card" onclick="openChatPN('M4SWA4-34DR+')">
         <div class="np-card-head"><span class="np-cat-label">MMIC Surface Mount SP4T RF Switch</span></div>
         <div class="np-card-body">
           <div class="np-img-area" style="height:130px;display:flex;align-items:center;justify-content:center"><img src="/assets/prod/m4swa4.png" alt="M4SWA4-34DR+" style="max-height:120px;max-width:90%;object-fit:contain"></div>
@@ -678,14 +673,14 @@ img{max-width:100%}
     <div class="footer-col">
       <h4>Products</h4>
       <ul>
-        <li><a href="/c/amp">Amplifiers</a></li>
-        <li><a href="/c/flt">Filters</a></li>
-        <li><a href="/c/mix">Mixers</a></li>
-        <li><a href="/c/att">Attenuators</a></li>
-        <li><a href="/c/spl">Splitters/Combiners</a></li>
-        <li><a href="/c/sw">RF Switches</a></li>
-        <li><a href="/c/ps">Phase Shifters</a></li>
-        <li><a href="/c/osc">Oscillators / VCOs</a></li>
+        <li><a href="#">Amplifiers</a></li>
+        <li><a href="#">Filters</a></li>
+        <li><a href="#">Mixers</a></li>
+        <li><a href="#">Attenuators</a></li>
+        <li><a href="#">Splitters/Combiners</a></li>
+        <li><a href="#">RF Switches</a></li>
+        <li><a href="#">Phase Shifters</a></li>
+        <li><a href="#">Oscillators / VCOs</a></li>
       </ul>
     </div>
     <div class="footer-col">
@@ -740,7 +735,21 @@ img{max-width:100%}
 <!-- FAB Button -->
 <div class="chat-fab" onclick="toggleChat()">
   <div class="chat-fab-btn">
-    <svg width="44" height="44" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><circle cx="32" cy="32" r="32" fill="#eaf1fb"/><g class="mcb"><g fill="#ff9100"><rect x="20" y="45" width="3" height="6" rx="1"/><rect x="26.5" y="45" width="3" height="6" rx="1"/><rect x="33" y="45" width="3" height="6" rx="1"/><rect x="39.5" y="45" width="3" height="6" rx="1"/></g><rect x="17" y="16" width="30" height="30" rx="6" fill="#253b98"/><rect x="24" y="11" width="16" height="6" rx="2" fill="#1c2f86"/><rect x="21" y="21" width="22" height="16" rx="3" fill="#0b1530"/><circle cx="28" cy="28" r="2.6" fill="#fff"/><circle cx="36" cy="28" r="2.6" fill="#fff"/><circle cx="28.7" cy="28.4" r="1.1" fill="#0b1530"/><circle cx="36.7" cy="28.4" r="1.1" fill="#0b1530"/><path d="M27 32.5 Q32 37 37 32.5" stroke="#ff9100" stroke-width="2" fill="none" stroke-linecap="round"/><g class="mca"><path d="M17 31 q-8 -1 -11 -8" stroke="#253b98" stroke-width="3" fill="none" stroke-linecap="round"/><circle cx="5.5" cy="22" r="2.6" fill="#ff9100"/></g><path d="M47 33 q8 0 11 5" stroke="#253b98" stroke-width="3" fill="none" stroke-linecap="round"/><circle cx="58.5" cy="38" r="2.6" fill="#ff9100"/></g></svg>
+    <svg width="36" height="40" viewBox="0 0 80 100" xmlns="http://www.w3.org/2000/svg">
+      <line x1="40" y1="1" x2="40" y2="17" stroke="#ff9100" stroke-width="2.5" stroke-linecap="round"/>
+      <circle cx="40" cy="1" r="3.5" fill="#ff9100" class="blink"/>
+      <rect x="11" y="17" width="58" height="42" rx="13" fill="#fff" opacity=".95"/>
+      <ellipse cx="28" cy="35" rx="6.5" ry="6.5" fill="#ff9100"/>
+      <ellipse cx="52" cy="35" rx="6.5" ry="6.5" fill="#ff9100"/>
+      <ellipse cx="28" cy="35" rx="3.8" ry="3.8" fill="#fff"/>
+      <ellipse cx="52" cy="35" rx="3.8" ry="3.8" fill="#fff"/>
+      <ellipse cx="29.2" cy="33.8" rx="2" ry="2" fill="#253b98"/>
+      <ellipse cx="53.2" cy="33.8" rx="2" ry="2" fill="#253b98"/>
+      <path d="M 24 44 Q 40 54 56 44" stroke="#ff9100" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      <rect x="11" y="60" width="58" height="36" rx="11" fill="#fff" opacity=".95"/>
+      <rect x="20" y="65" width="40" height="24" rx="5" fill="#253b98"/>
+      <text x="25" y="81" fill="#ff9100" font-size="12" font-weight="900" font-family="Arial">MC</text>
+    </svg>
   </div>
   <div class="chat-fab-notif" id="fabNotif">1</div>
 </div>
@@ -783,17 +792,45 @@ img{max-width:100%}
   <div class="chat-side">
     <!-- Header (normal mode) -->
     <div class="cp-header" id="cpNormalHeader">
-      <svg class="cp-av" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><circle cx="32" cy="32" r="32" fill="#eaf1fb"/><g class="mcb"><g fill="#ff9100"><rect x="20" y="45" width="3" height="6" rx="1"/><rect x="26.5" y="45" width="3" height="6" rx="1"/><rect x="33" y="45" width="3" height="6" rx="1"/><rect x="39.5" y="45" width="3" height="6" rx="1"/></g><rect x="17" y="16" width="30" height="30" rx="6" fill="#253b98"/><rect x="24" y="11" width="16" height="6" rx="2" fill="#1c2f86"/><rect x="21" y="21" width="22" height="16" rx="3" fill="#0b1530"/><circle cx="28" cy="28" r="2.6" fill="#fff"/><circle cx="36" cy="28" r="2.6" fill="#fff"/><circle cx="28.7" cy="28.4" r="1.1" fill="#0b1530"/><circle cx="36.7" cy="28.4" r="1.1" fill="#0b1530"/><path d="M27 32.5 Q32 37 37 32.5" stroke="#ff9100" stroke-width="2" fill="none" stroke-linecap="round"/><g class="mca"><path d="M17 31 q-8 -1 -11 -8" stroke="#253b98" stroke-width="3" fill="none" stroke-linecap="round"/><circle cx="5.5" cy="22" r="2.6" fill="#ff9100"/></g><path d="M47 33 q8 0 11 5" stroke="#253b98" stroke-width="3" fill="none" stroke-linecap="round"/><circle cx="58.5" cy="38" r="2.6" fill="#ff9100"/></g></svg>
+      <svg class="cp-av" viewBox="0 0 80 100" xmlns="http://www.w3.org/2000/svg">
+        <line x1="40" y1="1" x2="40" y2="17" stroke="#ff9100" stroke-width="2.5" stroke-linecap="round"/>
+        <circle cx="40" cy="1" r="3.5" fill="#ff9100" class="blink"/>
+        <rect x="11" y="17" width="58" height="42" rx="13" fill="#1C2951"/>
+        <ellipse cx="28" cy="35" rx="6.5" ry="6.5" fill="#ff9100"/>
+        <ellipse cx="52" cy="35" rx="6.5" ry="6.5" fill="#ff9100"/>
+        <ellipse cx="28" cy="35" rx="3.8" ry="3.8" fill="#fff"/>
+        <ellipse cx="52" cy="35" rx="3.8" ry="3.8" fill="#fff"/>
+        <ellipse cx="29.2" cy="33.8" rx="2" ry="2" fill="#1C2951"/>
+        <ellipse cx="53.2" cy="33.8" rx="2" ry="2" fill="#1C2951"/>
+        <path d="M 23 47 Q 40 58 57 47" stroke="#ff9100" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+        <rect x="11" y="60" width="58" height="36" rx="11" fill="#1C2951"/>
+        <rect x="20" y="65" width="40" height="24" rx="5" fill="#0A1220"/>
+        <text x="25" y="81" fill="#ff9100" font-size="12" font-weight="900" font-family="Arial">MC</text>
+      </svg>
       <div class="cp-info">
-        <h3>Minny <span style="font-weight:400;font-size:12px;color:#93afd4">— Mini-Circuits RF Assistant</span></h3>
-        <p><span class="cp-dot"></span> Online</p>
+        <h3>Minny ⚡ <span style="font-weight:400;font-size:12px;color:#93afd4">— Your RF Cartoon Sidekick!</span></h3>
+        <p><span class="cp-dot"></span> ONLINE &amp; READY TO ZAP!! 🤖✨</p>
       </div>
       <button class="cp-maximize" id="maxBtnNormal" onclick="toggleMaximize()" title="Maximize">⛶</button>
       <button class="cp-close" onclick="toggleChat()">✕</button>
     </div>
     <!-- Header (maximized mode chat side) -->
     <div class="cp-chat-header">
-      <svg class="cp-av-sm" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><circle cx="32" cy="32" r="32" fill="#eaf1fb"/><g class="mcb"><g fill="#ff9100"><rect x="20" y="45" width="3" height="6" rx="1"/><rect x="26.5" y="45" width="3" height="6" rx="1"/><rect x="33" y="45" width="3" height="6" rx="1"/><rect x="39.5" y="45" width="3" height="6" rx="1"/></g><rect x="17" y="16" width="30" height="30" rx="6" fill="#253b98"/><rect x="24" y="11" width="16" height="6" rx="2" fill="#1c2f86"/><rect x="21" y="21" width="22" height="16" rx="3" fill="#0b1530"/><circle cx="28" cy="28" r="2.6" fill="#fff"/><circle cx="36" cy="28" r="2.6" fill="#fff"/><circle cx="28.7" cy="28.4" r="1.1" fill="#0b1530"/><circle cx="36.7" cy="28.4" r="1.1" fill="#0b1530"/><path d="M27 32.5 Q32 37 37 32.5" stroke="#ff9100" stroke-width="2" fill="none" stroke-linecap="round"/><g class="mca"><path d="M17 31 q-8 -1 -11 -8" stroke="#253b98" stroke-width="3" fill="none" stroke-linecap="round"/><circle cx="5.5" cy="22" r="2.6" fill="#ff9100"/></g><path d="M47 33 q8 0 11 5" stroke="#253b98" stroke-width="3" fill="none" stroke-linecap="round"/><circle cx="58.5" cy="38" r="2.6" fill="#ff9100"/></g></svg>
+      <svg class="cp-av-sm" viewBox="0 0 80 100" xmlns="http://www.w3.org/2000/svg">
+        <line x1="40" y1="1" x2="40" y2="17" stroke="#ff9100" stroke-width="2.5" stroke-linecap="round"/>
+        <circle cx="40" cy="1" r="3.5" fill="#ff9100" class="blink"/>
+        <rect x="11" y="17" width="58" height="42" rx="13" fill="#1C2951"/>
+        <ellipse cx="28" cy="35" rx="6.5" ry="6.5" fill="#ff9100"/>
+        <ellipse cx="52" cy="35" rx="6.5" ry="6.5" fill="#ff9100"/>
+        <ellipse cx="28" cy="35" rx="3.8" ry="3.8" fill="#fff"/>
+        <ellipse cx="52" cy="35" rx="3.8" ry="3.8" fill="#fff"/>
+        <ellipse cx="29.2" cy="33.8" rx="2" ry="2" fill="#1C2951"/>
+        <ellipse cx="53.2" cy="33.8" rx="2" ry="2" fill="#1C2951"/>
+        <path d="M 23 47 Q 40 58 57 47" stroke="#ff9100" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+        <rect x="11" y="60" width="58" height="36" rx="11" fill="#1C2951"/>
+        <rect x="20" y="65" width="40" height="24" rx="5" fill="#0A1220"/>
+        <text x="25" y="81" fill="#ff9100" font-size="12" font-weight="900" font-family="Arial">MC</text>
+      </svg>
       <h4>Minny ⚡ <span style="font-weight:400;font-size:11px;opacity:.7">RF Assistant</span></h4>
       <span class="cp-dot2"></span>
     </div>
@@ -890,7 +927,7 @@ function pill(label,val,unit,hi){ if(val==null||val===''||val==='undefined') ret
       <div class="spec-row"><span class="sk">Frequency</span><span class="sv">DC–${p.fhi} MHz</span></div>
       <div class="spec-row"><span class="sk">Insertion Loss</span><span class="sv">${p.il} dB</span></div>
       <div class="spec-row"><span class="sk">Switching Speed</span><span class="sv">${p.spd} ns</span></div>`;
-    grid.innerHTML += `<div class="prod-card" onclick="location.href='/p/'+encodeURIComponent('${p.pn}')">
+    grid.innerHTML += `<div class="prod-card" onclick="openChatPN('${p.pn}')">
       <div class="prod-card-top">
         <span class="prod-cat-badge">${CAT_LBL[p.cat]}</span>
         <div class="prod-pn-big">${p.pn}</div>
@@ -988,7 +1025,7 @@ function renderCard(p) {
   const stockHtml = (p.stock==null)
     ? `<span class="cs-stock">Live availability →</span>`
     : `<span class="cs-stock ${p.stock>0?'in':'out'}">${p.stock>0 ? p.stock.toLocaleString()+' in stock' : 'Out of stock'}</span>`;
-  return `<div class="cs-card" onclick="location.href='/p/'+encodeURIComponent('${p.pn}')">
+  return `<div class="cs-card" onclick="openChatPN('${p.pn}')">
     <img src="/api/img?pn=${encodeURIComponent(p.pn)}&case=${encodeURIComponent(p.case_style||'')}" alt="${p.pn}" loading="lazy" onerror="this.style.display='none'" style="float:right;width:56px;height:56px;object-fit:contain;margin:0 0 4px 8px;background:#fff;border-radius:4px">
     <div class="cs-card-cat" style="${catStyle(p.cat)}">${label}</div>
     <div class="cs-card-pn">${p.pn}</div>
@@ -1068,7 +1105,7 @@ function cascade(stages){let gdb=0,nfl=0,gl=1,o3=0;stages.forEach((s,i)=>{const 
 // ══════════════════════════════════════════════════
 //  RESPONSE HANDLERS
 // ══════════════════════════════════════════════════
-function rGreet(){return`<div style="font-size:13.5px;">Hi, I'm <strong>Minny</strong>, your Mini-Circuits RF assistant. Tell me your application or target specs and I'll help you select the right part — with specifications, live pricing, stock, and datasheets.</div><div style="margin:8px 0 4px;font-size:13px;font-weight:700;color:#003087;">How can I help today?</div><div class="fgrid"><div class="fbox"><strong>Find a part</strong><span>Share your use case and key specs — I'll recommend the right model.</span></div><div class="fbox"><strong>Alternatives</strong><span>End-of-life or out of stock? I'll suggest a suitable replacement.</span></div><div class="fbox"><strong>RF calculations</strong><span>VSWR/return loss, cascade noise figure, dBm/mW conversions.</span></div><div class="fbox"><strong>Troubleshooting</strong><span>Stability, matching, or measurement issues — I can help diagnose.</span></div></div><div style="margin-top:10px;font-size:12px;color:#666;background:#f0f4ff;border-radius:8px;padding:7px 10px;">Try: <em>"I need an LNA for 5G sub-6 GHz"</em> or <em>"Help me cascade two stages"</em>.</div>`;}
+function rGreet(){return`<div style="font-size:13.5px;">Heyyy!! ⚡🤖 I'm <strong>Minny</strong> — Mini-Circuits' cartoon robot RF sidekick! <em>*antennae wiggle excitedly*</em> I LOVE a good RF puzzle!! ✨</div><div style="margin:6px 0 4px;font-size:13px;font-weight:700;color:#ff9100;">What are we building today? I'll ask the right questions to get you the PERFECT part! 🎯</div><div class="fgrid"><div class="fbox"><strong>🔍 Find a Part</strong><span>Tell me your use case — I'll ZAP the right one your way! ⚡</span></div><div class="fbox"><strong>🔄 Alternatives</strong><span>EOL or out of stock? <em>*spins catalog*</em> I got you! 🔄</span></div><div class="fbox"><strong>📊 RF Math</strong><span>VSWR, cascade NF, dBm conversions — PING! Calculated! 🎯</span></div><div class="fbox"><strong>🔧 Troubleshoot</strong><span>RF gremlins?? <em>*charges up*</em> Let's ZAP 'em together! 💥</span></div></div><div style="margin-top:10px;font-size:12px;color:#888;background:#f0f4ff;border-radius:8px;padding:7px 10px;">💬 Try: <em>"I need an LNA for 5G"</em> or <em>"Help me cascade two stages"</em> — I'll ask exactly what I need to help! 🤖⚡</div>`;}
 
 // ══════════════════════════════════════════════════
 //  CARD BUILDERS (used to render products from API)
@@ -1101,11 +1138,11 @@ function card(p,sp,isOrig,cmp){
   if(cmp&&p.cat==='amp'){const d=[];if(p.nf>cmp.nf)d.push(`NF +${Math.round((p.nf-cmp.nf)*100)/100}dB worse`);if(p.gain<cmp.gain)d.push(`Gain −${Math.round((cmp.gain-p.gain)*100)/100}dB`);if(p.p1o>cmp.p1o)d.push(`P1dB +${p.p1o-cmp.p1o}dBm better`);if(d.length)diff=`<div class="diffwarn">⚠️ vs. original: ${d.join(' · ')}</div>`;}
   // Price: show a number only if we actually have one; otherwise a link to the
   // live product page (which is where real pricing/stock lives).
-  const link = '/p/'+encodeURIComponent(p.pn);
+  const link = p.url||('https://www.minicircuits.com/WebStore/dashboard.html?model='+encodeURIComponent(p.pn));
   const hasPrice = typeof p.price==='number' && p.price>0;
   const priceHtml = hasPrice
-    ? `<a href="${link}" onclick="event.stopPropagation()" class="pprice" style="text-decoration:none">$${p.price}</a>`
-    : `<a href="${link}" onclick="event.stopPropagation()" style="font-size:11px;font-weight:700;color:#253b98;text-decoration:none">View product &amp; files →</a>`;
+    ? `<span class="pprice">$${p.price}</span>`
+    : `<a href="${link}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="font-size:11px;font-weight:700;color:#253b98;text-decoration:none">See live pricing →</a>`;
   const inStock = p.stock>0 || p.stock===true;
   const stockHtml = (p.stock==null) ? '' : `<span class="pstock ${inStock?'':'no'}">${inStock?'✓ In Stock':'✗ Check Avail.'}</span>`;
   const clsTag = CAT_CLS[p.cat]||'';
@@ -1118,8 +1155,7 @@ function card(p,sp,isOrig,cmp){
 // ══════════════════════════════════════════════════
 //  CHAT UI ENGINE  (Claude-powered backend)
 // ══════════════════════════════════════════════════
-const MASCOT_INNER=`<circle cx="32" cy="32" r="32" fill="#eaf1fb"/><g class="mcb"><g fill="#ff9100"><rect x="20" y="45" width="3" height="6" rx="1"/><rect x="26.5" y="45" width="3" height="6" rx="1"/><rect x="33" y="45" width="3" height="6" rx="1"/><rect x="39.5" y="45" width="3" height="6" rx="1"/></g><rect x="17" y="16" width="30" height="30" rx="6" fill="#253b98"/><rect x="24" y="11" width="16" height="6" rx="2" fill="#1c2f86"/><rect x="21" y="21" width="22" height="16" rx="3" fill="#0b1530"/><circle cx="28" cy="28" r="2.6" fill="#fff"/><circle cx="36" cy="28" r="2.6" fill="#fff"/><circle cx="28.7" cy="28.4" r="1.1" fill="#0b1530"/><circle cx="36.7" cy="28.4" r="1.1" fill="#0b1530"/><path d="M27 32.5 Q32 37 37 32.5" stroke="#ff9100" stroke-width="2" fill="none" stroke-linecap="round"/><g class="mca"><path d="M17 31 q-8 -1 -11 -8" stroke="#253b98" stroke-width="3" fill="none" stroke-linecap="round"/><circle cx="5.5" cy="22" r="2.6" fill="#ff9100"/></g><path d="M47 33 q8 0 11 5" stroke="#253b98" stroke-width="3" fill="none" stroke-linecap="round"/><circle cx="58.5" cy="38" r="2.6" fill="#ff9100"/></g>`;
-const MINNY_SM=`<svg class="cp-av-sm" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">${MASCOT_INNER}</svg>`;
+const MINNY_SM=`<svg class="cp-av-sm" viewBox="0 0 80 100" xmlns="http://www.w3.org/2000/svg"><line x1="40" y1="1" x2="40" y2="17" stroke="#ff9100" stroke-width="2.5" stroke-linecap="round"/><circle cx="40" cy="1" r="3.5" fill="#ff9100"/><rect x="11" y="17" width="58" height="42" rx="13" fill="#1C2951"/><ellipse cx="28" cy="35" rx="6.5" ry="6.5" fill="#ff9100"/><ellipse cx="52" cy="35" rx="6.5" ry="6.5" fill="#ff9100"/><ellipse cx="28" cy="35" rx="3.8" ry="3.8" fill="#fff"/><ellipse cx="52" cy="35" rx="3.8" ry="3.8" fill="#fff"/><ellipse cx="29.2" cy="33.8" rx="2" ry="2" fill="#1C2951"/><ellipse cx="53.2" cy="33.8" rx="2" ry="2" fill="#1C2951"/><path d="M 23 47 Q 40 57 57 47" stroke="#ff9100" stroke-width="2.5" fill="none" stroke-linecap="round"/><rect x="11" y="60" width="58" height="36" rx="11" fill="#1C2951"/><rect x="20" y="65" width="40" height="24" rx="5" fill="#0A1220"/><text x="25" y="81" fill="#ff9100" font-size="12" font-weight="900" font-family="Arial">MC</text></svg>`;
 const USER_AV=`<div class="cp-av-sm" style="background:#253b98;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;width:32px;height:32px;">👤</div>`;
 
 function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
@@ -1172,7 +1208,7 @@ function showEscalationForm(question){
   row.className='cp-row';
   row.id='escalation-form-row';
   row.innerHTML=`${MINNY_SM}<div class="cp-bubble bot">
-    <div style="margin-bottom:8px;"><strong>Happy to connect you with the team.</strong> Share your details below and a Mini-Circuits applications engineer will follow up.</div>
+    <div style="margin-bottom:8px;">📬 <strong>No problem at all!</strong> <em>*opens comms channel*</em> Let me loop in the Mini-Circuits team — they'll ZAP you an answer! ⚡🤖</div>
     <div style="display:flex;flex-direction:column;gap:7px;" id="esc-form">
       <input id="esc-name"    placeholder="Your name *"          style="border:1px solid #ddd;border-radius:6px;padding:7px 10px;font-size:12px;outline:none;" />
       <input id="esc-company" placeholder="Company (optional)"   style="border:1px solid #ddd;border-radius:6px;padding:7px 10px;font-size:12px;outline:none;" />
@@ -1210,7 +1246,7 @@ async function submitEscalation(){
       addMsg(`<div>✅ <strong>Message sent, ${esc(name)}!</strong> <em>*does happy robot wiggle*</em> The Mini-Circuits team will reach out to <strong>${esc(email)}</strong> soon! ⚡🤖🎉</div>`,false);
     } else {
       const e=await resp.json().catch(()=>({}));
-      addMsg(`<div style="color:#c00;">That didn't go through (${esc(e.message||'unknown error')}). Please email <strong>k.revanth123@gmail.com</strong> directly and we'll help.</div>`,false);
+      addMsg(`<div style="color:#c00;">😬 Hmm, the email zap misfired! (${esc(e.message||'unknown error')}) Try emailing <strong>k.revanth123@gmail.com</strong> directly! 📧</div>`,false);
     }
   }catch(e){
     document.getElementById('escalation-form-row')?.remove();

@@ -1184,7 +1184,13 @@ app.post('/api/escalate', requirePasscode, async (req, res) => {
 app.get('/', async (req, res) => {
   res.set('Cache-Control', 'no-cache'); res.set('Content-Type', 'text/html; charset=utf-8');
   try { const h = await mirrorHomepage(); if (h) return res.send(h); } catch (e) {}
-  res.sendFile(path.join(__dirname, 'views', 'index.html'));
+  // Mini-Circuits blocks server-side HTML fetches from datacenter IPs (e.g. Vercel),
+  // so when the live mirror can't load, serve a real rewritten snapshot of the MC
+  // homepage (assets still proxy through /mc, which is NOT blocked). Final fallback
+  // is the lightweight recreation only if the snapshot file is missing.
+  res.sendFile(path.join(__dirname, 'views', 'home-snapshot.html'), (err) => {
+    if (err) res.sendFile(path.join(__dirname, 'views', 'index.html'));
+  });
 });
 // Generic page mirror for nav links (About, Tools, product landing pages, etc.).
 app.get(/^\/m\//, async (req, res) => {

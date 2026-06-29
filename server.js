@@ -264,7 +264,7 @@ Don't drip one question per turn. In ONE message present a compact, category-spe
   • <decisive param 1>: <options>
   • <decisive param 2>: <options>
   Reply with whatever you've got and I'll find the best matches.
-When the user replies (even partially): search with what they gave, treat blanks/"any" as unconstrained, return a focused top 3, and briefly note what you left open ("(any package)"). Don't re-ask the blanks. If they give enough upfront ("2.4 GHz 50Ω 1:1 SMT balun" or "2.4 GHz LNA, NF<2dB, 5V"), skip the template — search & recommend. If they say "just show me" / "list them" / "show all", list a top 3–5 immediately.
+When the user replies (even partially): search with what they gave, treat blanks/"any" as unconstrained, return a focused top 3, and briefly note what you left open ("(any package)"). Don't re-ask the blanks. If they give enough upfront ("2.4 GHz 50Ω 1:1 SMT balun" or "2.4 GHz LNA, NF<2dB, 5V"), skip the template — search & recommend. If they say "just show me" / "list them" / "show all", list up to 10 matching parts immediately (not just 3), state the total count, and link the category page for the complete filterable list.
 
 DECISIVE PARAMETERS BY CATEGORY (template fields; most-decisive first; always include a Frequency line):
 • Amplifier / LNA / gain block / driver / PA: application (Rx = low NF / Tx = high P1dB·Psat·OIP3), Vcc/bias, package (SMT vs connectorized).
@@ -347,7 +347,7 @@ function extractMentionedProducts(text) {
     // (e.g. TC1-1+) from falsely matching inside longer ones (TC1-1-13M+).
     const re = new RegExp(`(^|[^A-Z0-9+-])${esc(pnU)}(?![A-Z0-9+-])`);
     if (re.test(upper) && !seen.has(p.pn)) { seen.add(p.pn); hits.push(normalize(p)); }
-    if (hits.length >= 6) break;
+    if (hits.length >= 12) break;
   }
   // Order cards to match the order parts appear in the reply.
   hits.sort((a, b) => upper.indexOf(a.pn.toUpperCase()) - upper.indexOf(b.pn.toUpperCase()));
@@ -1001,7 +1001,7 @@ function semSet(msg, out) {
 // the user are rebuilt from the full catalog separately, so this loses nothing
 // the customer sees — it just stops re-sending fat JSON on every tool-loop turn.
 function compactSearch(r) {
-  const slim = (r.results || []).slice(0, 10).map(p => {
+  const slim = (r.results || []).slice(0, 15).map(p => {
     const o = { pn: p.pn };
     if (p.flo != null) o.MHz = p.flo + '-' + p.fhi;
     ['gain', 'nf', 'p1o', 'oip3', 'il', 'iso', 'impedance', 'impedance_ratio'].forEach(k => { if (p[k] != null) o[k] = p[k]; });
@@ -1129,7 +1129,7 @@ async function runChat(message, history = []) {
   reply = reply.replace(/\]\((?:https?:\/\/[^)\s]*minicircuits\.com)?(?:\.\.\/|\/)?(?:WebStore\/)?(?:dashboard|modelSearch)\.html\?model=([^)\s&]+)[^)\s]*\)/gi,
     (m, model) => `](/p/${model})`);
 
-  const result = { reply, products: mentionedProducts.slice(0, 4), suggestions, pick, tokens: usage, rawText: finalText };
+  const result = { reply, products: mentionedProducts.slice(0, 12), suggestions, pick, tokens: usage, rawText: finalText };
   semSet(message, result);
   return result;
 }
